@@ -2,6 +2,9 @@ cmake_minimum_required (VERSION 3.6)
 
 project(Diligent-TextureLoader CXX)
 
+# use installed/vcpkg libpng
+find_package(libpng CONFIG REQUIRED)
+
 set(INCLUDE 
     include/DDSLoader.h
     include/dxgiformat.h
@@ -49,9 +52,8 @@ PRIVATE
     Diligent-GraphicsAccessories
     Diligent-GraphicsTools
     LibJpeg 
-    LibPng 
     LibTiff 
-    ZLib
+    png
 )
 
 set_target_properties(Diligent-TextureLoader PROPERTIES

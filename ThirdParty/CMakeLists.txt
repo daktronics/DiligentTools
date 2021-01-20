@@ -2,8 +2,6 @@ cmake_minimum_required (VERSION 3.6)
 
 add_subdirectory(libjpeg-9a)
 add_subdirectory(libtiff)
-add_subdirectory(zlib-1.2.8)
-add_subdirectory(lpng-1.6.17)
 
 set(LICENSE_INSTALL_PATH "Licenses/ThirdParty/${DILIGENT_TOOLS_DIR}")
 
@@ -16,7 +14,7 @@ install(FILES imgui/LICENSE.txt DESTINATION ${LICENSE_INSTALL_PATH} RENAME imgui
 install(FILES imGuIZMO.quat/license.txt DESTINATION ${LICENSE_INSTALL_PATH} RENAME imGuIZMO.quat-license.txt)
 
 if(DILIGENT_INSTALL_TOOLS)
-    set(THIRD_PARTY_TARGETS LibJpeg LibPng LibTiff ZLib)
+    set(THIRD_PARTY_TARGETS LibJpeg LibTiff)
     install(TARGETS ${THIRD_PARTY_TARGETS}
             ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
             LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
