@@ -48,7 +48,7 @@ if(DILIGENT_BUILD_TESTS)
 endif()
 
 # Installation instructions
-if(DILIGENT_INSTALL_TOOLS)
+if(DILIGENT_INSTALL_TOOLS AND NOT DILIGENT_USE_VCPKG)
 
     install_combined_static_lib(
         "${CMAKE_STATIC_LIBRARY_PREFIX}DiligentTools${CMAKE_STATIC_LIBRARY_SUFFIX}"
