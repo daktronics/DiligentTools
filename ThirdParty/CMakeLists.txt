@@ -113,8 +113,8 @@ if(DILIGENT_INSTALL_TOOLS)
             RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
     )
 
-    list(APPEND DILIGENT_TOOLS_INSTALL_LIBS_LIST ${THIRD_PARTY_TARGETS})
-    set(DILIGENT_TOOLS_INSTALL_LIBS_LIST ${DILIGENT_TOOLS_INSTALL_LIBS_LIST} CACHE INTERNAL "Diligent tools libraries installation list")
+        list(APPEND DILIGENT_TOOLS_INSTALL_LIBS_LIST ${THIRD_PARTY_TARGETS})
+        set(DILIGENT_TOOLS_INSTALL_LIBS_LIST ${DILIGENT_TOOLS_INSTALL_LIBS_LIST} CACHE INTERNAL "Diligent tools libraries installation list")
 
     install(
         FILES
@@ -127,4 +127,10 @@ if(DILIGENT_INSTALL_TOOLS)
         DESTINATION
             "${CMAKE_INSTALL_INCLUDEDIR}/${DILIGENT_TOOLS_DIR}/ThirdParty/imgui"
     )
+
+    install_tools_lib(Diligent-JSON)
+endif()
+
+if ((${DILIGENT_USE_VCPKG}))
+    install_tools_lib_and_export(Diligent-JSON)
 endif()
