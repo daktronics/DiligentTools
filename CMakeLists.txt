@@ -33,6 +33,38 @@ function(install_tools_lib _TARGET)
     endif()
 endfunction()
 
+function(install_tools_lib_and_export _TARGET)
+    get_target_relative_dir(${_TARGET} TARGET_RELATIVE_PATH)
+
+    install(TARGETS				 ${_TARGET}
+            EXPORT ${_TARGET}Target
+            ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+            LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+    )
+    install(EXPORT ${_TARGET}Target
+            FILE ${_TARGET}-target.cmake
+            NAMESPACE Diligent::
+            DESTINATION lib/cmake/diligent
+    )
+    if (DILIGENT_INSTALL_PDB)
+        install(FILES $<TARGET_PDB_FILE:${_TARGET}> DESTINATION "${CMAKE_INSTALL_BINDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>" OPTIONAL)
+    endif()
+
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/interface")
+        install(DIRECTORY    interface
+                DESTINATION  "${CMAKE_INSTALL_INCLUDEDIR}/${TARGET_RELATIVE_PATH}/"
+        )
+    endif()
+endfunction()
+
+if ((${DILIGENT_USE_VCPKG}))
+    find_package(JPEG REQUIRED)
+    find_package(ZLIB REQUIRED)
+    find_package(libpng CONFIG REQUIRED)
+    find_package(TIFF REQUIRED)
+endif()
+
 add_subdirectory(ThirdParty)
 add_subdirectory(TextureLoader)
 add_subdirectory(AssetLoader)

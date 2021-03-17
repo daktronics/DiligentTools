@@ -31,7 +31,7 @@ set_common_target_properties(Diligent-TextureLoader)
 
 target_include_directories(Diligent-TextureLoader
 PUBLIC
-    interface
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/interface>
 PRIVATE
     include
 )
@@ -39,6 +39,12 @@ PRIVATE
 source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 source_group("interface" FILES ${INTERFACE})
+
+if ((${DILIGENT_USE_VCPKG}))
+    set(IMG_LIBS ${JPEG_LIBRARIES} png TIFF::TIFF ZLIB::ZLIB)
+else()
+    set(IMG_LIBS LibJpeg LibPng LibTiff ZLib)
+endif()
 
 target_link_libraries(Diligent-TextureLoader 
 PRIVATE 
@@ -48,10 +54,7 @@ PRIVATE
     Diligent-GraphicsEngineInterface 
     Diligent-GraphicsAccessories
     Diligent-GraphicsTools
-    LibJpeg 
-    LibPng 
-    LibTiff 
-    ZLib
+    ${IMG_LIBS} 
 )
 
 set_target_properties(Diligent-TextureLoader PROPERTIES
@@ -60,4 +63,8 @@ set_target_properties(Diligent-TextureLoader PROPERTIES
 
 if(DILIGENT_INSTALL_TOOLS)
     install_tools_lib(Diligent-TextureLoader)
+endif()
+
+if ((${DILIGENT_USE_VCPKG}))
+    install_tools_lib_and_export(Diligent-TextureLoader)
 endif()
