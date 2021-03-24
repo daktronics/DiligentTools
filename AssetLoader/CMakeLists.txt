@@ -66,3 +66,7 @@ set_target_properties(Diligent-AssetLoader PROPERTIES
 if(DILIGENT_INSTALL_TOOLS)
     install_tools_lib(Diligent-AssetLoader)
 endif()
+
+if ((${DILIGENT_USE_VCPKG}))
+    install_tools_lib_and_export(Diligent-AssetLoader)
+endif()
