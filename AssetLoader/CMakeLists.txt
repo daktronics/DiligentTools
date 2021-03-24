@@ -23,7 +23,7 @@ set_common_target_properties(Diligent-AssetLoader)
 
 target_include_directories(Diligent-AssetLoader
 PUBLIC
-    interface
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/interface>
 PRIVATE
     include
 )
