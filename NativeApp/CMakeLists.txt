@@ -402,4 +402,11 @@ set_target_properties(Diligent-NativeAppBase PROPERTIES
 
 if ((${DILIGENT_USE_VCPKG}) AND (${DILIGENT_INSTALL_TOOLS}))
     install_tools_lib_and_export(Diligent-NativeAppBase)
+    # a little hacky, native app base wasn't intended to be installed
+    get_target_relative_dir(Diligent-NativeAppBase TARGET_RELATIVE_PATH)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include")
+        install(DIRECTORY    include
+                DESTINATION  "${CMAKE_INSTALL_INCLUDEDIR}/${TARGET_RELATIVE_PATH}/"
+        )
+    endif()
 endif()
