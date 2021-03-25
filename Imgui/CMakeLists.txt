@@ -85,14 +85,16 @@ add_library(Diligent-Imgui STATIC
 
 set_common_target_properties(Diligent-Imgui)
 
+get_target_relative_dir(Diligent-Imgui IMGUI_RELATIVE_PATH)
+
 target_include_directories(Diligent-Imgui
 PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/interface>
-    $<INSTALL_INTERFACE:interface>
+    $<INSTALL_INTERFACE:${IMGUI_RELATIVE_PATH}/interface>
     $<BUILD_INTERFACE:${IMGUIZMO_QUAT_PATH}>
-    $<INSTALL_INTERFACE:../ThirdParty/imGuIZMO.quat>
+    $<INSTALL_INTERFACE:${DILIGENT_TOOLS_DIR}/ThirdParty/imGuIZMO.quat>
     $<BUILD_INTERFACE:${DEAR_IMGUI_PATH}>
-    $<INSTALL_INTERFACE:../ThirdParty/imgui>
+    $<INSTALL_INTERFACE:${DILIGENT_TOOLS_DIR}/ThirdParty/imgui>
 PRIVATE
     include
 )
