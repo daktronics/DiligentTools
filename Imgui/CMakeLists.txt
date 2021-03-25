@@ -2,6 +2,35 @@ cmake_minimum_required (VERSION 3.10)
 
 project(Diligent-Imgui CXX)
 
+if (NOT DILIGENT_DEAR_IMGUI_PATH)
+    set(DEAR_IMGUI_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/imgui")
+else()
+    set(DEAR_IMGUI_PATH "${DILIGENT_DEAR_IMGUI_PATH}")
+endif()
+
+set(IMGUIZMO_QUAT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/imGuIZMO.quat")
+
+set(DEAR_IMGUI_INCLUDE
+    ${DEAR_IMGUI_PATH}/imconfig.h
+    ${DEAR_IMGUI_PATH}/imgui_internal.h
+    ${DEAR_IMGUI_PATH}/imstb_rectpack.h
+    ${DEAR_IMGUI_PATH}/imstb_textedit.h
+    ${DEAR_IMGUI_PATH}/imstb_truetype.h
+    ${DEAR_IMGUI_PATH}/misc/cpp/imgui_stdlib.h
+)
+
+set(DEAR_IMGUI_INTERFACE
+    ${DEAR_IMGUI_PATH}/imgui.h
+)
+
+set(DEAR_IMGUI_SOURCE
+    ${DEAR_IMGUI_PATH}/imgui.cpp
+    ${DEAR_IMGUI_PATH}/imgui_draw.cpp
+    ${DEAR_IMGUI_PATH}/imgui_tables.cpp
+    ${DEAR_IMGUI_PATH}/imgui_widgets.cpp
+    ${DEAR_IMGUI_PATH}/misc/cpp/imgui_stdlib.cpp
+)
+
 set(SOURCE
     src/ImGuiDiligentRenderer.cpp
     src/ImGuiImplDiligent.cpp
@@ -111,7 +140,9 @@ endif()
 
 target_include_directories(Diligent-Imgui
 PUBLIC
-    interface
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/interface>
+    $<BUILD_INTERFACE:${IMGUIZMO_QUAT_PATH}>
+    $<BUILD_INTERFACE:${DEAR_IMGUI_PATH}>
 PRIVATE
     include
 )
@@ -155,3 +186,19 @@ set_target_properties(Diligent-Imgui PROPERTIES
 if(DILIGENT_INSTALL_TOOLS)
     install_tools_lib(Diligent-Imgui)
 endif()
+
+if ((${DILIGENT_USE_VCPKG}))
+    install_tools_lib_and_export(Diligent-Imgui)
+    
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/imgui")
+        install(DIRECTORY    ../ThirdParty/imgui
+                DESTINATION  "${CMAKE_INSTALL_INCLUDEDIR}/${DILIGENT_TOOLS_DIR}/ThirdParty"
+        )
+    endif()
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/imGuIZMO.quat")
+        install(DIRECTORY    ../ThirdParty/imGuIZMO.quat
+                DESTINATION  "${CMAKE_INSTALL_INCLUDEDIR}/${DILIGENT_TOOLS_DIR}/ThirdParty"
+        )
+    endif()
+endif()
+
