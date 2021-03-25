@@ -75,7 +75,7 @@ elseif(PLATFORM_UNIVERSAL_WINDOWS)
 
         target_include_directories(${TARGET_NAME} 
         PUBLIC
-            ${NATIVE_APP_SOURCE_DIR}/Src/UWP
+            $<BUILD_INTERFACE:${NATIVE_APP_SOURCE_DIR}/Src/UWP>
         )
     
         target_link_libraries(${TARGET_NAME} PRIVATE dxgi.lib)
@@ -459,7 +459,7 @@ endif()
 
 target_include_directories(Diligent-NativeAppBase 
 PUBLIC
-    include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 target_link_libraries(Diligent-NativeAppBase 
@@ -472,22 +472,22 @@ if(PLATFORM_WIN32)
 
     target_include_directories(Diligent-NativeAppBase
     PUBLIC 
-        include/Win32
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/Win32>
     )
 
 elseif(PLATFORM_UNIVERSAL_WINDOWS)
 
     target_include_directories(Diligent-NativeAppBase 
     PUBLIC
-        include/UWP 
-        src/UWP
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/UWP>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/UWP>
     )
 
 elseif(PLATFORM_ANDROID)
     target_link_libraries(Diligent-NativeAppBase PUBLIC NDKHelper native_app_glue PRIVATE android)
     target_include_directories(Diligent-NativeAppBase
     PUBLIC
-        include/Android
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/Android>
     )
 elseif(PLATFORM_LINUX)
     find_package(X11 REQUIRED)
@@ -505,7 +505,7 @@ elseif(PLATFORM_LINUX)
     endif()
     target_include_directories(Diligent-NativeAppBase 
     PUBLIC 
-        include/Linux
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/Linux>
     )
     if(VULKAN_SUPPORTED)
         find_library(XCB_LIBRARY xcb)
@@ -516,12 +516,12 @@ elseif(PLATFORM_LINUX)
     endif()
 elseif(PLATFORM_MACOS)
     target_include_directories(Diligent-NativeAppBase PUBLIC
-        src/MacOS
-        include/MacOS
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/MacOS>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/MacOS>
     )
 elseif(PLATFORM_IOS)
     target_include_directories(Diligent-NativeAppBase PUBLIC
-        include/IOS
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/IOS>
     )
 elseif(PLATFORM_TVOS)
     target_include_directories(Diligent-NativeAppBase PUBLIC
@@ -539,3 +539,7 @@ source_group("include" FILES ${INCLUDE})
 set_target_properties(Diligent-NativeAppBase PROPERTIES
     FOLDER DiligentTools
 )
+
+if ((${DILIGENT_USE_VCPKG}) AND (${DILIGENT_INSTALL_TOOLS}))
+    install_tools_lib_and_export(Diligent-NativeAppBase)
+endif()
