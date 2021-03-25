@@ -88,8 +88,11 @@ set_common_target_properties(Diligent-Imgui)
 target_include_directories(Diligent-Imgui
 PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/interface>
+    $<INSTALL_INTERFACE:interface>
     $<BUILD_INTERFACE:${IMGUIZMO_QUAT_PATH}>
+    $<INSTALL_INTERFACE:../ThirdParty/imGuIZMO.quat>
     $<BUILD_INTERFACE:${DEAR_IMGUI_PATH}>
+    $<INSTALL_INTERFACE:../ThirdParty/imgui>
 PRIVATE
     include
 )
