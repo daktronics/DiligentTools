@@ -29,9 +29,12 @@ set(SOURCE
 add_library(Diligent-TextureLoader STATIC ${SOURCE} ${INCLUDE} ${INTERFACE})
 set_common_target_properties(Diligent-TextureLoader)
 
+get_target_relative_dir(Diligent-TextureLoader TEXTURE_LOADER_DIR)
+
 target_include_directories(Diligent-TextureLoader
 PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/interface>
+    $<INSTALL_INTERFACE:include/${TEXTURE_LOADER_DIR}/interface>
 PRIVATE
     include
 )

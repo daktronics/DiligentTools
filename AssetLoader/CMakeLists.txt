@@ -21,9 +21,12 @@ set(SOURCE
 add_library(Diligent-AssetLoader STATIC ${SOURCE} ${INCLUDE} ${INTERFACE})
 set_common_target_properties(Diligent-AssetLoader)
 
+get_target_relative_dir(Diligent-AssetLoader ASSET_LOADER_DIR)
+
 target_include_directories(Diligent-AssetLoader
 PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/interface>
+    $<INSTALL_INTERFACE:include/${ASSET_LOADER_DIR}/interface>
 PRIVATE
     include
 )
