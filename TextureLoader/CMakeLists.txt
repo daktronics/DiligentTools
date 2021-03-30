@@ -40,9 +40,12 @@ APPEND PROPERTY INCLUDE_DIRECTORIES
     "${CMAKE_CURRENT_BINARY_DIR}/../ThirdParty/libpng" # pnglibconf.h is generated in the binary directory
 )
 
+get_target_relative_dir(Diligent-TextureLoader TEXTURE_LOADER_DIR)
+
 target_include_directories(Diligent-TextureLoader
 PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/interface>
+    $<INSTALL_INTERFACE:include/${TEXTURE_LOADER_DIR}/interface>
 PRIVATE
     include
 )
