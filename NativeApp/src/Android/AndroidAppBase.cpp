@@ -1,11 +1,13 @@
-/*     Copyright 2015-2018 Egor Yusov
- *  
+/*
+ *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2015-2019 Egor Yusov
+ *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF ANY PROPRIETARY RIGHTS.
@@ -159,6 +161,7 @@ void AndroidAppBase::HandleCmd(struct android_app* app, int32_t cmd)
         }
 
         case APP_CMD_TERM_WINDOW:
+        case APP_CMD_PAUSE:
             // The window is being hidden or closed, clean it up.
             eng->TermDisplay();
             eng->has_focus_ = false;

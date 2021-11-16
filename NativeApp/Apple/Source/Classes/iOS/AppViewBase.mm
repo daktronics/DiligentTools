@@ -16,7 +16,7 @@
 
 @implementation AppViewBase
 
-- (void) initApp:(int)deviceType;
+- (void) initApp:(int)deviceType
 {
     try
     {
@@ -58,48 +58,48 @@
 
 - (NSInteger) preferredFramesPerSecond
 {
-	return _preferredFramesPerSecond;
+    return _preferredFramesPerSecond;
 }
 
 - (void) setPreferredFramesPerSecond:(NSInteger)preferredFPS
 {
-	if (preferredFPS >= 1)
-	{
-		_preferredFramesPerSecond = preferredFPS;
+    if (preferredFPS >= 1)
+    {
+        _preferredFramesPerSecond = preferredFPS;
 
-		if (self.animating)
-		{
-			[self stopAnimation];
-			[self startAnimation];
-		}
-	}
+        if (self.animating)
+        {
+            [self stopAnimation];
+            [self startAnimation];
+        }
+    }
 }
 
 - (void) startAnimation
 {
-	if (!self.animating)
-	{
+    if (!self.animating)
+    {
         // Create the display link and set the callback to our drawView method
         _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(drawView:)];
 
         // Set it to our _animationFrameInterval
         [_displayLink setPreferredFramesPerSecond:_preferredFramesPerSecond];
 
-        // Have the display link run on the default runn loop (and the main thread)
+        // Have the display link run on the default run loop (and the main thread)
         [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
 
         [super startAnimation];
-	}
+    }
 }
 
 - (void)stopAnimation
 {
-	if (self.animating)
-	{
+    if (self.animating)
+    {
         [_displayLink invalidate];
         _displayLink = nil;
         [super stopAnimation];
-	}
+    }
 }
 
 - (void)terminate
@@ -114,7 +114,7 @@
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches
-           withEvent:(UIEvent *)event;
+           withEvent:(UIEvent *)event
 {
     UITouch *firstTouch = touches.allObjects[0];
     CGPoint location = [firstTouch locationInView:self];
@@ -125,7 +125,7 @@
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches
-           withEvent:(UIEvent *)event;
+           withEvent:(UIEvent *)event
 {
     UITouch *firstTouch = touches.allObjects[0];
     CGPoint location = [firstTouch locationInView:self];
@@ -136,7 +136,7 @@
 }
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches
-           withEvent:(UIEvent *)event;
+           withEvent:(UIEvent *)event
 {
     UITouch *firstTouch = touches.allObjects[0];
     CGPoint location = [firstTouch locationInView:self];
@@ -147,7 +147,7 @@
 }
 
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches
-               withEvent:(UIEvent *)event;
+               withEvent:(UIEvent *)event
 {
     UITouch *firstTouch = touches.allObjects[0];
     CGPoint location = [firstTouch locationInView:self];

@@ -83,7 +83,6 @@ elseif(PLATFORM_UNIVERSAL_WINDOWS)
         add_uwp_app("${TARGET_NAME}" "${SOURCE}" "${INCLUDE}" "${ASSETS}")
     endfunction()
 
-
 elseif(PLATFORM_ANDROID)
 
     set(SOURCE 
@@ -135,7 +134,6 @@ elseif(PLATFORM_LINUX)
     function(add_target_platform_app TARGET_NAME SOURCE INCLUDE ASSETS)
         add_linux_app("${TARGET_NAME}" "${SOURCE}" "${INCLUDE}" "${ASSETS}")
     endfunction()
-
 
 elseif(PLATFORM_MACOS)
 
@@ -192,7 +190,7 @@ elseif(PLATFORM_MACOS)
 
         add_executable(${TARGET_NAME} MACOSX_BUNDLE ${SOURCE} ${APPLE_SOURCE} ${INCLUDE} ${APPLE_INCLUDE} ${ASSETS} ${APPLE_RESOURCES})
         set_target_properties(${TARGET_NAME} PROPERTIES
-            MACOSX_BUNDLE_GUI_IDENTIFIER "com.diligentengine.samples.${TARGET_NAME}"
+            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.diligentengine.samples.${TARGET_NAME}"
             MACOSX_BUNDLE_INFO_PLIST "${APPLE_INFO_PLIST}"
             RESOURCE "${APPLE_RESOURCES}"
         )
@@ -219,6 +217,8 @@ elseif(PLATFORM_MACOS)
         endif()
 
         target_link_libraries(${TARGET_NAME} PRIVATE ${OPENGL_LIBRARY} ${CORE_VIDEO} ${METAL_FRAMEWORK} ${CORE_ANIMATION})
+        # Silence OpenGL deprecation warnings
+        target_compile_definitions(${TARGET_NAME} PUBLIC GL_SILENCE_DEPRECATION)
 
     endfunction()
 
@@ -273,12 +273,12 @@ elseif(PLATFORM_IOS)
         )
 
         set(APPLE_INCLUDE_DIRS
-                ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS
         )
 
         add_executable(${TARGET_NAME} MACOSX_BUNDLE ${SOURCE} ${APPLE_SOURCE} ${INCLUDE} ${APPLE_INCLUDE} ${ASSETS} ${APPLE_RESOURCES})
         set_target_properties(${TARGET_NAME} PROPERTIES
-            MACOSX_BUNDLE_GUI_IDENTIFIER "com.diligentengine.samples.${TARGET_NAME}"
+            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.diligentengine.samples.${TARGET_NAME}"
             MACOSX_BUNDLE_INFO_PLIST "${APPLE_INFO_PLIST}"
             RESOURCE "${APPLE_RESOURCES}"
             XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
@@ -306,10 +306,100 @@ elseif(PLATFORM_IOS)
         endif()
 
         target_link_libraries(${TARGET_NAME} PRIVATE ${OPENGLES} ${UIKIT} ${CORE_ANIMATION})
+        # Silence OpenGLES deprecation warnings
+        target_compile_definitions(${TARGET_NAME} PUBLIC GLES_SILENCE_DEPRECATION)
+
     endfunction()
 
     function(add_target_platform_app TARGET_NAME SOURCE INCLUDE ASSETS)
         add_ios_app("${TARGET_NAME}" "${SOURCE}" "${INCLUDE}" "${ASSETS}")
+    endfunction()
+
+elseif(PLATFORM_TVOS)
+
+    set(SOURCE
+        src/TVOS/TVOSAppBase.cpp
+    )
+    set(INCLUDE
+        include/TVOS/TVOSAppBase.hpp
+    )
+
+    function(add_tvos_app TARGET_NAME SOURCE INCLUDE ASSETS)
+        get_target_property(NATIVE_APP_SOURCE_DIR Diligent-NativeAppBase SOURCE_DIR)
+
+        set(APPLE_SOURCE
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/main.m
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/tvOS/AppDelegate.mm
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/tvOS/MainUIView.mm
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/tvOS/MetalView.mm
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/tvOS/MetalViewController.mm
+        )
+
+        set(APPLE_INCLUDE
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/tvOS/AppDelegate.h
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/tvOS/MainUIView.h
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/tvOS/MetalView.h
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/tvOS/MetalViewController.h
+        )
+
+        set(APPLE_RESOURCES
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Data/tvOS/Base.lproj/Main.storyboard
+        )
+
+        set(APPLE_INFO_PLIST
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Data/tvOS/info.plist
+        )
+
+        set(APPLE_INCLUDE_DIRS
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/tvOS
+        )
+
+        add_executable(${TARGET_NAME} MACOSX_BUNDLE ${SOURCE} ${APPLE_SOURCE} ${INCLUDE} ${APPLE_INCLUDE} ${ASSETS} ${APPLE_RESOURCES})
+        set_target_properties(${TARGET_NAME} PROPERTIES
+            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.diligentengine.samples.${TARGET_NAME}"
+            MACOSX_BUNDLE_INFO_PLIST "${APPLE_INFO_PLIST}"
+            RESOURCE "${APPLE_RESOURCES}"
+            XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
+            # XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "Dev Team"
+            BUILD_RPATH "@executable_path"
+        )
+        source_group("tvOS" FILES ${APPLE_SOURCE})
+        source_group("tvOS" FILES ${APPLE_INCLUDE})
+        source_group("Resources" FILES ${APPLE_RESOURCES})
+        target_include_directories(${TARGET_NAME} PRIVATE ${APPLE_INCLUDE_DIRS})
+
+        find_library(UIKIT UIKit)
+        if (NOT UIKIT)
+            message(FATAL_ERROR "UIKIT is not found")
+        endif()
+
+        find_library(CORE_ANIMATION QuartzCore)
+        if (NOT CORE_ANIMATION)
+            message(FATAL_ERROR "QuartzCore (CoreAnimation) is not found")
+        endif()
+
+        target_link_libraries(${TARGET_NAME} PRIVATE ${UIKIT} ${CORE_ANIMATION})
+
+    endfunction()
+
+    function(add_target_platform_app TARGET_NAME SOURCE INCLUDE ASSETS)
+        add_tvos_app("${TARGET_NAME}" "${SOURCE}" "${INCLUDE}" "${ASSETS}")
+    endfunction()
+
+elseif(PLATFORM_EMSCRIPTEN)
+    set(SOURCE 
+        src/Emscripten/EmscriptenMain.cpp
+    )
+    set(INCLUDE
+        include/Emscripten/EmscriptenAppBase.hpp
+    )
+
+    function(add_emscripten_app TARGET_NAME SOURCE INCLUDE ASSETS)
+        add_executable(${TARGET_NAME} ${SOURCE} ${INCLUDE} ${ASSETS})   
+    endfunction()
+
+    function(add_target_platform_app TARGET_NAME SOURCE INCLUDE ASSETS)
+        add_emscripten_app("${TARGET_NAME}" "${SOURCE}" "${INCLUDE}" "${ASSETS}")
     endfunction()
 
 else()
@@ -393,6 +483,14 @@ elseif(PLATFORM_MACOS)
 elseif(PLATFORM_IOS)
     target_include_directories(Diligent-NativeAppBase PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/IOS>
+    )
+elseif(PLATFORM_TVOS)
+    target_include_directories(Diligent-NativeAppBase PUBLIC
+        include/TVOS
+    )
+elseif(PLATFORM_EMSCRIPTEN)
+    target_include_directories(Diligent-NativeAppBase PUBLIC
+        include/Emscripten
     )
 endif()
 

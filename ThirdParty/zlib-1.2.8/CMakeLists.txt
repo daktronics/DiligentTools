@@ -44,15 +44,18 @@ if(MSVC)
     target_compile_options(ZLib PRIVATE /W3 /wd4131 /wd4127 /wd4244 /wd4996)
 endif()
 
-if(PLATFORM_LINUX OR PLATFORM_ANDROID OR PLATFORM_MACOS OR PLATFORM_IOS)
+if(PLATFORM_LINUX OR PLATFORM_ANDROID OR PLATFORM_MACOS OR PLATFORM_IOS OR PLATFORM_TVOS OR PLATFORM_EMSCRIPTEN)
     target_compile_definitions(ZLib PRIVATE HAVE_UNISTD_H)
 endif()
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR 
-    CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    # For inflate.c, disable the following
-    # warning: shifting a negative signed value is undefined [-Wshift-negative-value]
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # Disable the following warning:
+    # shifting a negative signed value is undefined [-Wshift-negative-value]
     set_source_files_properties(inflate.c PROPERTIES COMPILE_FLAGS -Wno-shift-negative-value)
+
+    # Disable the following warning:
+    # implicit conversion loses integer precision: 'ssize_t' (aka 'long') to 'int'
+    set_source_files_properties(gzwrite.c gzread.c PROPERTIES COMPILE_FLAGS -Wno-shorten-64-to-32)
 endif()
 
 

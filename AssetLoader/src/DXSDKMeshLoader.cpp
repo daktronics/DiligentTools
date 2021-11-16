@@ -88,9 +88,10 @@ void DXSDKMesh::ComputeBoundingBoxes()
 
             for (Uint32 v = 0; v < Subset.IndexCount; ++v)
             {
-                Uint32 Index = IndexType == IT_16BIT ?
+                const Uint32 Index = IndexType == IT_16BIT ?
                     reinterpret_cast<const Uint16*>(Indices)[Subset.IndexStart + v] :
                     reinterpret_cast<const Uint32*>(Indices)[Subset.IndexStart + v];
+
                 const float3& Vertex =
                     reinterpret_cast<const float3&>(Vertices[Index * Stride + PosDecl->Offset]);
                 Min = std::min(Min, Vertex);
@@ -196,7 +197,7 @@ static void LoadTexture(IRenderDevice*                    pDevice,
         {
             LOG_ERROR("Failed to load texture ", Name);
         }
-        Barriers.emplace_back(*ppTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE, true);
+        Barriers.emplace_back(*ppTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE, STATE_TRANSITION_FLAG_UPDATE_STATE);
     }
 }
 
@@ -231,15 +232,15 @@ void DXSDKMesh::LoadGPUResources(const Char* ResourceDirectory, IRenderDevice* p
         ss << "DXSDK Mesh vertex buffer #" << i;
         std::string VBName = ss.str();
         BufferDesc  VBDesc;
-        VBDesc.Name          = VBName.c_str();
-        VBDesc.Usage         = USAGE_IMMUTABLE;
-        VBDesc.uiSizeInBytes = static_cast<Uint32>(VBArr.NumVertices * VBArr.StrideUint8s);
-        VBDesc.BindFlags     = BIND_VERTEX_BUFFER;
+        VBDesc.Name      = VBName.c_str();
+        VBDesc.Usage     = USAGE_IMMUTABLE;
+        VBDesc.Size      = VBArr.NumVertices * VBArr.StrideUint8s;
+        VBDesc.BindFlags = BIND_VERTEX_BUFFER;
 
         BufferData InitData{GetRawVerticesAt(i), static_cast<Uint32>(VBArr.SizeUint8s)};
         pDevice->CreateBuffer(VBDesc, &InitData, &m_VertexBuffers[i]);
 
-        Barriers.emplace_back(m_VertexBuffers[i], RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_VERTEX_BUFFER, true);
+        Barriers.emplace_back(m_VertexBuffers[i], RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_VERTEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE);
     }
 
     // Create IBs
@@ -253,15 +254,15 @@ void DXSDKMesh::LoadGPUResources(const Char* ResourceDirectory, IRenderDevice* p
         std::string IBName = ss.str();
 
         BufferDesc IBDesc;
-        IBDesc.Name          = IBName.c_str();
-        IBDesc.Usage         = USAGE_IMMUTABLE;
-        IBDesc.uiSizeInBytes = static_cast<Uint32>(IBArr.NumIndices * (IBArr.IndexType == IT_16BIT ? 2 : 4));
-        IBDesc.BindFlags     = BIND_INDEX_BUFFER;
+        IBDesc.Name      = IBName.c_str();
+        IBDesc.Usage     = USAGE_IMMUTABLE;
+        IBDesc.Size      = IBArr.NumIndices * (IBArr.IndexType == IT_16BIT ? 2 : 4);
+        IBDesc.BindFlags = BIND_INDEX_BUFFER;
 
         BufferData InitData{GetRawIndicesAt(i), static_cast<Uint32>(IBArr.SizeUint8s)};
         pDevice->CreateBuffer(IBDesc, &InitData, &m_IndexBuffers[i]);
 
-        Barriers.emplace_back(m_IndexBuffers[i], RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_INDEX_BUFFER, true);
+        Barriers.emplace_back(m_IndexBuffers[i], RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_INDEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE);
     }
 
     pDeviceCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());

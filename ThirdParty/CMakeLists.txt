@@ -15,6 +15,7 @@ if (NOT (${DILIGENT_USE_VCPKG}))
     install(FILES zlib-1.2.8/README DESTINATION ${LICENSE_INSTALL_PATH} RENAME zlib-readme.txt)
     install(FILES imgui/LICENSE.txt DESTINATION ${LICENSE_INSTALL_PATH} RENAME imgui-license.txt)
     install(FILES imGuIZMO.quat/license.txt DESTINATION ${LICENSE_INSTALL_PATH} RENAME imGuIZMO.quat-license.txt)
+    install(FILES stb/LICENSE.txt DESTINATION "${LICENSE_INSTALL_PATH}" RENAME stb-license.txt)
 
     if(DILIGENT_INSTALL_TOOLS)
         set(THIRD_PARTY_TARGETS LibJpeg LibPng LibTiff ZLib)

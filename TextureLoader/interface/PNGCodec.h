@@ -25,7 +25,7 @@
  *  of the possibility of such damages.
  */
 
-#include "../interface/Image.h"
+#include "Image.h"
 
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 
@@ -34,7 +34,7 @@ DILIGENT_BEGIN_NAMESPACE(Diligent)
 /// PNG decoding result.
 DILIGENT_TYPED_ENUM(DECODE_PNG_RESULT, Uint32)
 {
-    /// Decoding was successfull.
+    /// Decoding was successful.
     DECODE_PNG_RESULT_OK = 0,
 
     /// Invalid arguments (e.g. null pointer).
