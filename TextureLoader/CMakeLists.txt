@@ -3,26 +3,29 @@ cmake_minimum_required (VERSION 3.6)
 project(Diligent-TextureLoader CXX)
 
 set(INCLUDE 
-    include/DDSLoader.h
     include/dxgiformat.h
-    include/JPEGCodec.h
     include/pch.h
-    include/PNGCodec.h
+    include/TextureLoaderImpl.hpp
 )
 
 set(INTERFACE
+    interface/JPEGCodec.h
+    interface/PNGCodec.h
+    interface/BCTools.h
     interface/Image.h
     interface/TextureLoader.h
     interface/TextureUtilities.h
 )
 
 set(SOURCE 
+    src/BCTools.cpp
     src/DDSLoader.cpp
     src/JPEGCodec.c
     src/Image.cpp
     src/KTXLoader.cpp
     src/PNGCodec.c
-    src/TextureLoader.cpp
+    src/STBImpl.cpp
+    src/TextureLoaderImpl.cpp
     src/TextureUtilities.cpp
 )
 
@@ -59,6 +62,18 @@ PRIVATE
     Diligent-GraphicsTools
     ${IMG_LIBS} 
 )
+
+if (NOT DILIGENT_EXTERNAL_LIBJPEG)
+    target_link_libraries(Diligent-TextureLoader
+    PRIVATE
+        LibJpeg
+    )
+else()
+    target_link_libraries(Diligent-TextureLoader
+    PRIVATE
+        ${DILIGENT_EXTERNAL_LIBJPEG}
+    )
+endif()
 
 set_target_properties(Diligent-TextureLoader PROPERTIES
     FOLDER DiligentTools

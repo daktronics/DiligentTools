@@ -121,10 +121,12 @@ struct Image : public ObjectBase<IObject>
     static void Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData);
 
     /// Returns image description
-    const ImageDesc& GetDesc() { return m_Desc; }
+    const ImageDesc& GetDesc() const { return m_Desc; }
 
     /// Returns a pointer to the image data
     IDataBlob* GetData() { return m_pData; }
+
+    const IDataBlob* GetData() const { return m_pData; }
 
     static std::vector<Uint8> ConvertImageData(Uint32         Width,
                                                Uint32         Height,
@@ -134,7 +136,7 @@ struct Image : public ObjectBase<IObject>
                                                TEXTURE_FORMAT DstFormat,
                                                bool           KeepAlpha);
 
-    static IMAGE_FILE_FORMAT GetFileFormat(const Uint8* pData, size_t Size);
+    static IMAGE_FILE_FORMAT GetFileFormat(const Uint8* pData, size_t Size, const char* FilePath = nullptr);
 
 private:
     template <typename AllocatorType, typename ObjectType>
@@ -149,7 +151,6 @@ private:
     ImageDesc                m_Desc;
     RefCntAutoPtr<IDataBlob> m_pData;
 };
-
 
 /// Creates an image from file
 
