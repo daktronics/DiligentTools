@@ -63,6 +63,7 @@ PRIVATE
     ${IMG_LIBS} 
 )
 
+if (NOT (${DILIGENT_USE_VCPKG}))
 if (NOT DILIGENT_EXTERNAL_LIBJPEG)
     target_link_libraries(Diligent-TextureLoader
     PRIVATE
@@ -73,6 +74,7 @@ else()
     PRIVATE
         ${DILIGENT_EXTERNAL_LIBJPEG}
     )
+endif()
 endif()
 
 set_target_properties(Diligent-TextureLoader PROPERTIES
