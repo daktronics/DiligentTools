@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.6)
 
 project(Diligent-Imgui CXX)
 
-set(IMGUIZMO_QUAT_PATH ../ThirdParty/imGuIZMO.quat)
+set(IMGUIZMO_QUAT_PATH ${CMAKE_SOURCE_DIR}/${DILIGENT_TOOLS_DIR}/ThirdParty/imGuIZMO.quat)
 
 set(SOURCE
     src/ImGuiDiligentRenderer.cpp
