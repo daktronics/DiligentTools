@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,8 +50,8 @@ void android_main(android_app* state)
 
     if (!mode.empty())
     {
-        std::string cmd_line = "-mode " + mode;
-        theApp->ProcessCommandLine(cmd_line.c_str());
+        const char* Args[] = {"--mode", mode.c_str()};
+        theApp->ProcessCommandLine(_countof(Args), Args);
     }
 
     state->userData     = theApp.get();

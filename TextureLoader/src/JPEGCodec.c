@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -130,7 +130,7 @@ DECODE_JPEG_RESULT Diligent_DecodeJpeg(IDataBlob* pSrcJpegBits,
     pDstImgDesc->RowStride     = pDstImgDesc->Width * pDstImgDesc->NumComponents;
     pDstImgDesc->RowStride     = (pDstImgDesc->RowStride + 3u) & ~3u;
 
-    IDataBlob_Resize(pDstPixels, pDstImgDesc->RowStride * pDstImgDesc->Height);
+    IDataBlob_Resize(pDstPixels, (size_t)pDstImgDesc->RowStride * pDstImgDesc->Height);
     // Step 6: while (scan lines remain to be read)
     //           jpeg_read_scanlines(...);
 
@@ -143,7 +143,7 @@ DECODE_JPEG_RESULT Diligent_DecodeJpeg(IDataBlob* pSrcJpegBits,
         // more than one scanline at a time if that's more convenient.
 
         Uint8*   pScanline0   = IDataBlob_GetDataPtr(pDstPixels);
-        Uint8*   pDstScanline = pScanline0 + cinfo.output_scanline * pDstImgDesc->RowStride;
+        Uint8*   pDstScanline = pScanline0 + cinfo.output_scanline * (size_t)pDstImgDesc->RowStride;
         JSAMPROW RowPtrs[1];
         RowPtrs[0] = (JSAMPROW)pDstScanline;
         jpeg_read_scanlines(&cinfo, RowPtrs, 1);
@@ -209,7 +209,7 @@ ENCODE_JPEG_RESULT Diligent_EncodeJpeg(Uint8*     pSrcRGBPixels,
     /* Step 2: specify data destination (memory) */
     /* Note: steps 2 and 3 can be done in either order. */
     unsigned char* mem      = NULL;
-    unsigned long  mem_size = 0;
+    size_t         mem_size = 0;
     jpeg_mem_dest(&cinfo, &mem, &mem_size);
 
     /* Step 3: set parameters for compression */

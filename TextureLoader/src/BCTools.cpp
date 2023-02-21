@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -103,7 +103,7 @@ inline void DecompressAlphaBlock(const Uint8* Bits,
         Alpha[7] = 255;
     }
 
-    for (Uint32 p = 0; p < 2; ++p)
+    for (size_t p = 0; p < 2; ++p)
     {
         const Uint8* PaletteBits = Bits + 2 + p * 3;
         const Uint32 Palette0    = Uint32{PaletteBits[0]} | (Uint32{PaletteBits[1]} << 8) | (Uint32{PaletteBits[2]} << 16);

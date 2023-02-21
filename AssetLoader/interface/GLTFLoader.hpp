@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -131,7 +131,7 @@ struct Material
         float RoughnessFactor = 1;
         int   AlphaMode       = ALPHA_MODE_OPAQUE;
         float AlphaCutoff     = 0.5f;
-        float Dummy0;
+        float Dummy0          = 0;
 
         // When texture atlas is used, UV scale and bias applied to
         // each texture coordinate set
@@ -415,6 +415,14 @@ struct Model
         /// every material being loaded.
         MaterialLoadCallbackType MaterialLoadCallback = nullptr;
 
+        using FileExistsCallbackType = std::function<bool(const char* FilePath)>;
+        /// Optional callback function that will be called by the loader to check if the file exists.
+        FileExistsCallbackType FileExistsCallback = nullptr;
+
+        using ReadWholeFileCallbackType = std::function<bool(const char* FilePath, std::vector<unsigned char>& Data, std::string& Error)>;
+        /// Optional callback function that will be called by the loader to read the whole file.
+        ReadWholeFileCallbackType ReadWholeFileCallback = nullptr;
+
         /// Index buffer bind flags
         BIND_FLAGS IndBufferBindFlags = BIND_INDEX_BUFFER;
 
@@ -423,19 +431,23 @@ struct Model
 
         CreateInfo() = default;
 
-        explicit CreateInfo(const char*              _FileName,
-                            TextureCacheType*        _pTextureCache        = nullptr,
-                            ResourceCacheUseInfo*    _pCacheInfo           = nullptr,
-                            bool                     _LoadAnimationAndSkin = true,
-                            MeshLoadCallbackType     _MeshLoadCallback     = nullptr,
-                            MaterialLoadCallbackType _MaterialLoadCallback = nullptr) :
+        explicit CreateInfo(const char*               _FileName,
+                            TextureCacheType*         _pTextureCache         = nullptr,
+                            ResourceCacheUseInfo*     _pCacheInfo            = nullptr,
+                            bool                      _LoadAnimationAndSkin  = true,
+                            MeshLoadCallbackType      _MeshLoadCallback      = nullptr,
+                            MaterialLoadCallbackType  _MaterialLoadCallback  = nullptr,
+                            FileExistsCallbackType    _FileExistsCallback    = nullptr,
+                            ReadWholeFileCallbackType _ReadWholeFileCallback = nullptr) :
             // clang-format off
-            FileName            {_FileName},
-            pTextureCache       {_pTextureCache},
-            pCacheInfo          {_pCacheInfo},
-            LoadAnimationAndSkin{_LoadAnimationAndSkin},
-            MeshLoadCallback    {_MeshLoadCallback},
-            MaterialLoadCallback{_MaterialLoadCallback}
+            FileName             {_FileName},
+            pTextureCache        {_pTextureCache},
+            pCacheInfo           {_pCacheInfo},
+            LoadAnimationAndSkin {_LoadAnimationAndSkin},
+            MeshLoadCallback     {_MeshLoadCallback},
+            MaterialLoadCallback {_MaterialLoadCallback},
+            FileExistsCallback   {_FileExistsCallback},
+            ReadWholeFileCallback{_ReadWholeFileCallback}
         // clang-format on
         {
         }
@@ -492,6 +504,33 @@ private:
                       IDeviceContext*   pContext,
                       const CreateInfo& CI);
 
+    struct ConvertedBufferViewKey
+    {
+        int PosAccess    = -1;
+        int UV0Access    = -1;
+        int UV1Access    = -1;
+        int NormAccess   = -1;
+        int JointAccess  = -1;
+        int WeightAccess = -1;
+
+        bool operator==(const ConvertedBufferViewKey& Rhs) const noexcept;
+
+        struct Hasher
+        {
+            size_t operator()(const ConvertedBufferViewKey& Key) const noexcept;
+        };
+    };
+
+    struct ConvertedBufferViewData
+    {
+        size_t VertexBasicDataOffset = ~size_t(0);
+        size_t VertexSkinDataOffset  = ~size_t(0);
+
+        bool IsInitialized() const { return VertexBasicDataOffset != ~size_t(0); }
+    };
+
+    using ConvertedBufferViewMap = std::unordered_map<ConvertedBufferViewKey, ConvertedBufferViewData, ConvertedBufferViewKey::Hasher>;
+
     void LoadNode(Node*                                          parent,
                   const tinygltf::Node&                          gltf_node,
                   uint32_t                                       nodeIndex,
@@ -499,7 +538,14 @@ private:
                   std::vector<Uint32>&                           IndexData,
                   std::vector<VertexBasicAttribs>&               VertexBasicData,
                   std::vector<VertexSkinAttribs>*                pVertexSkinData,
-                  const Model::CreateInfo::MeshLoadCallbackType& MeshLoadCallback);
+                  const Model::CreateInfo::MeshLoadCallbackType& MeshLoadCallback,
+                  ConvertedBufferViewMap&                        ConvertedBuffers);
+
+    void ConvertBuffers(const ConvertedBufferViewKey&    Key,
+                        ConvertedBufferViewData&         Data,
+                        const tinygltf::Model&           gltf_model,
+                        std::vector<VertexBasicAttribs>& VertexBasicData,
+                        std::vector<VertexSkinAttribs>*  pVertexSkinData) const;
 
     void LoadSkins(const tinygltf::Model& gltf_model);
 

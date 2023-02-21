@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -266,7 +266,7 @@ void TextureLoaderImpl::LoadFromKTX(const TextureLoadInfo& TexLoadInfo, const Ui
             LOG_ERROR_AND_THROW("Unsupported number of faces (", NumFaces, ")");
         }
 
-        m_SubResources.resize(m_TexDesc.MipLevels * ArraySize);
+        m_SubResources.resize(size_t{m_TexDesc.MipLevels} * size_t{ArraySize});
 
         // NB: unlike DDS, subresource in KTX are arranged by mip levels first.
         for (Uint32 mip = 0; mip < SrcMipLevels; ++mip)
@@ -278,7 +278,7 @@ void TextureLoaderImpl::LoadFromKTX(const TextureLoadInfo& TexLoadInfo, const Ui
             {
                 if (mip < m_TexDesc.MipLevels)
                 {
-                    m_SubResources[mip + layer * m_TexDesc.MipLevels] =
+                    m_SubResources[mip + size_t{layer} * size_t{m_TexDesc.MipLevels}] =
                         TextureSubResData{pData, MipInfo.RowSize, MipInfo.DepthSliceSize};
                 }
                 pData += AlignUp(MipInfo.MipSize, 4u);

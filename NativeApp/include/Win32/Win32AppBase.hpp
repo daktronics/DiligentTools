@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,10 +27,9 @@
 
 #pragma once
 
-#ifndef NOMINMAX
-#    define NOMINMAX
-#endif
+#include "WinHPreface.h"
 #include <Windows.h>
+#include "WinHPostface.h"
 
 #include "AppBase.hpp"
 
@@ -47,9 +46,11 @@ public:
     /// \param [in] WindowWidth  - Window width.
     /// \param [in] WindowHeight - Window height.
     ///
+    /// \return true if the operation succeeded, and false otherwise.
+    ///
     /// \remarks An application may override AppBase::GetDesiredInitialWindowSize
     ///          method to specify desired initial window size.
-    virtual void OnWindowCreated(HWND hWnd,
+    virtual bool OnWindowCreated(HWND hWnd,
                                  LONG WindowWidth,
                                  LONG WindowHeight) = 0;
 

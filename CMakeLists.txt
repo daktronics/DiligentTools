@@ -8,6 +8,10 @@ else()
     set(DILIGENT_INSTALL_TOOLS OFF)
 endif()
 
+option(DILIGENT_NO_RENDER_STATE_PACKAGER "Do not build Render State Packager" OFF)
+
+# Clear the list
+set(DILIGENT_TOOLS_INSTALL_LIBS_LIST "" CACHE INTERNAL "Diligent tools libraries installation list")
 function(install_tools_lib _TARGET)
     get_target_relative_dir(${_TARGET} TARGET_RELATIVE_PATH)
 
@@ -73,6 +77,12 @@ add_subdirectory(NativeApp)
 
 if((PLATFORM_WIN32 OR PLATFORM_LINUX OR PLATFORM_MACOS) AND GL_SUPPORTED)
     add_subdirectory(HLSL2GLSLConverter)
+endif()
+
+add_subdirectory(RenderStateNotation)
+
+if((PLATFORM_WIN32 OR PLATFORM_LINUX OR PLATFORM_MACOS) AND ARCHIVER_SUPPORTED AND NOT DILIGENT_NO_RENDER_STATE_PACKAGER)
+    add_subdirectory(RenderStatePackager)
 endif()
 
 add_subdirectory(Tests)

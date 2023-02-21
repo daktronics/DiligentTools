@@ -44,6 +44,7 @@ PRIVATE
     Diligent-GraphicsAccessories
     Diligent-GraphicsTools
     Diligent-TextureLoader
+    Diligent-JSON
 )
 
 if (TARGET draco)

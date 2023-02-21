@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,10 +48,14 @@
 // clang-format off
 
 #include "TextureLoaderImpl.hpp"
+#include "FileWrapper.hpp"
+#include "GraphicsAccessories.hpp"
+
 #include "dxgiformat.h"
 
 #include <memory>
 #include <algorithm>
+#include <array>
 
 #ifndef _In_
 #   define _In_
@@ -70,6 +74,9 @@
 #endif
 
 using namespace Diligent;
+
+namespace
+{
 
 // D3D11 definitions
 
@@ -484,9 +491,34 @@ static TEXTURE_FORMAT DXGIFormatToTexFormat( DXGI_FORMAT TexFormat )
         case DXGI_FORMAT_BC7_UNORM:                     return TEX_FORMAT_BC7_UNORM; 
         case DXGI_FORMAT_BC7_UNORM_SRGB:                return TEX_FORMAT_BC7_UNORM_SRGB; 
 
-        default: UNEXPECTED( "Unsupported DXGI format" ); return TEX_FORMAT_UNKNOWN;
+        default:                                        return TEX_FORMAT_UNKNOWN;
     }
 }
+
+
+struct TexFormatToDXGIFormatMap
+{
+    TexFormatToDXGIFormatMap()
+    {
+        for (int DXGIFmt = int{DXGI_FORMAT_UNKNOWN} + 1; DXGIFmt < int{DXGI_FORMAT_COUNT}; ++DXGIFmt)
+        {
+            auto TexFmt = DXGIFormatToTexFormat(static_cast<DXGI_FORMAT>(DXGIFmt));
+            if (TexFmt  != TEX_FORMAT_UNKNOWN)
+                FmtMap[TexFmt] = static_cast<DXGI_FORMAT>(DXGIFmt);
+        }
+    }
+
+    DXGI_FORMAT operator()(TEXTURE_FORMAT Fmt)const
+    {
+        VERIFY_EXPR(Fmt < FmtMap.size());
+        return Fmt < FmtMap.size() ? FmtMap[Fmt] : DXGI_FORMAT_UNKNOWN;
+    }
+
+private:
+    std::array<DXGI_FORMAT, TEX_FORMAT_NUM_FORMATS> FmtMap{};
+};
+TexFormatToDXGIFormatMap TexFormatToDXGIFormat;
+
 
 //--------------------------------------------------------------------------------------
 // Get surface information for a particular format
@@ -831,8 +863,8 @@ static void FillInitData(
 
             if (mip < dstMipCount)
             {
-                VERIFY_EXPR(index < dstMipCount * arraySize);
-                initData[index].pData       = (const void*)pSrcBits;
+                VERIFY_EXPR(index < size_t{dstMipCount} * size_t{arraySize});
+                initData[index].pData       = reinterpret_cast<const void*>(pSrcBits);
                 initData[index].Stride      = static_cast<Uint32>(RowBytes);
                 initData[index].DepthStride = static_cast<Uint32>(NumBytes);
                 ++index;
@@ -888,6 +920,8 @@ static D2D1_ALPHA_MODE GetAlphaMode(_In_ const DDS_HEADER* header)
 }
 
 #endif
+
+} // namespace
 
 namespace Diligent
 {
@@ -1086,9 +1120,105 @@ void TextureLoaderImpl::LoadFromDDS(const TextureLoadInfo& TexLoadInfo, const Ui
     }
     m_TexDesc.Format = DXGIFormatToTexFormat(dxgiFormat);
 
-    m_SubResources.resize(ArraySize * m_TexDesc.MipLevels);
+    m_SubResources.resize(size_t{ArraySize} * size_t{m_TexDesc.MipLevels});
     FillInitData(m_TexDesc.Width, m_TexDesc.Height, Depth, SrcMipCount, m_TexDesc.MipLevels, ArraySize, dxgiFormat,
                  DataSize - SubResDataOffset, pData + SubResDataOffset, m_SubResources.data());
 }
 
+
+bool SaveTextureAsDDS(const char*        FilePath,
+                      const TextureDesc& Desc,
+                      const TextureData& TexData)
+{
+    const auto ArraySize = Desc.GetArraySize();
+    VERIFY(TexData.NumSubresources == Desc.MipLevels * ArraySize, "Incorrect number of subresources");
+    VERIFY_EXPR(TexData.pSubResources != nullptr);
+
+    Uint32 Magic = MAKEFOURCC('D', 'D', 'S', ' ');
+
+    DDS_HEADER Header{};
+    Header.size         = sizeof(Header);
+    Header.flags        = DDS_HEADER_FLAGS_TEXTURE | DDS_HEADER_FLAGS_MIPMAP;
+    Header.ddspf.size   = sizeof(Header.ddspf);
+    Header.ddspf.fourCC = MAKEFOURCC('D', 'X', '1', '0');
+    Header.ddspf.flags  = DDS_FOURCC;
+    Header.width        = Desc.Width;
+    Header.height       = Desc.Height;
+    Header.mipMapCount  = Desc.MipLevels;
+
+    DDS_HEADER_DXT10 Header10{};
+    Header10.dxgiFormat = TexFormatToDXGIFormat(Desc.Format);
+    Header10.arraySize  = ArraySize;
+    switch (Desc.Type)
+    {
+        case RESOURCE_DIM_TEX_1D:
+        case RESOURCE_DIM_TEX_1D_ARRAY:
+            Header10.resourceDimension = D3D11_RESOURCE_DIMENSION_TEXTURE1D;
+            break;
+
+        case RESOURCE_DIM_TEX_2D:
+        case RESOURCE_DIM_TEX_2D_ARRAY:
+        case RESOURCE_DIM_TEX_CUBE:
+        case RESOURCE_DIM_TEX_CUBE_ARRAY:
+            Header10.resourceDimension = D3D11_RESOURCE_DIMENSION_TEXTURE2D;
+            break;
+
+        case RESOURCE_DIM_TEX_3D:
+            Header10.resourceDimension = D3D11_RESOURCE_DIMENSION_TEXTURE3D;
+            break;
+
+        default:
+            UNEXPECTED("Unexpected texture dimension");
+            return false;
+    }
+
+    FileWrapper File{FilePath, EFileAccessMode::Overwrite};
+    if (!File)
+    {
+        LOG_ERROR_MESSAGE("Failed to open file '", FilePath, "'.");
+        return false;
+    }
+
+    if (!File->Write(&Magic, sizeof(Magic)))
+        return false;
+
+    if (!File->Write(&Header, sizeof(Header)))
+        return false;
+
+    if (!File->Write(&Header10, sizeof(Header10)))
+        return false;
+
+    const auto& FmtAttribs = GetTextureFormatAttribs(Desc.Format);
+    for (Uint32 Slice = 0; Slice < ArraySize; ++Slice)
+    {
+        for (Uint32 Mip = 0; Mip < Desc.MipLevels; ++Mip)
+        {
+            const auto& MipProps = GetMipLevelProperties(Desc, Mip);
+            const auto& SubRes   = TexData.pSubResources[Slice * Desc.MipLevels + Mip];
+            VERIFY_EXPR(SubRes.pData != nullptr);
+            const auto* pData  = reinterpret_cast<const Uint8*>(SubRes.pData);
+            const auto  Stride = SubRes.Stride;
+            VERIFY(Stride >= MipProps.RowSize, "Row stride is too small");
+            for (Uint32 row = 0; row < MipProps.StorageHeight / FmtAttribs.BlockHeight; ++row)
+            {
+                const auto* pRowData = pData + Stride * row;
+                if (!File->Write(pRowData, StaticCast<size_t>(MipProps.RowSize)))
+                    return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 } // namespace Diligent
+
+extern "C"
+{
+    void Diligent_SaveTextureAsDDS(const char*                  FilePath,
+                                   const Diligent::TextureDesc& Desc,
+                                   const Diligent::TextureData& TexData)
+    {
+        Diligent::SaveTextureAsDDS(FilePath, Desc, TexData);
+    }
+}

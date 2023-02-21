@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,6 +40,7 @@
 #include "Image.h"
 #include "FileWrapper.hpp"
 #include "DataBlobImpl.hpp"
+#include "Align.hpp"
 
 extern "C"
 {
@@ -63,29 +64,44 @@ extern "C"
                                                      Diligent::Uint32     Height,
                                                      int                  quality,
                                                      Diligent::IDataBlob* pDstJpegBits);
+
+    Diligent::DECODE_JPEG_RESULT Diligent_LoadSGI(Diligent::IDataBlob* pSrcJpegBits,
+                                                  Diligent::IDataBlob* pDstPixels,
+                                                  Diligent::ImageDesc* pDstImgDesc);
 }
 
 namespace Diligent
 {
 
 template <typename ChannelType>
-void RGBToRGBA(const void* pRGBData,
-               Uint32      RGBStride,
-               void*       pRGBAData,
-               Uint32      RGBAStride,
-               Uint32      Width,
-               Uint32      Height)
+void ModifyComponentCount(const void* pSrcData,
+                          Uint32      SrcStride,
+                          Uint32      SrcCompCount,
+                          void*       pDstData,
+                          Uint32      DstStride,
+                          Uint32      Width,
+                          Uint32      Height,
+                          Uint32      DstCompCount)
 {
+    auto CompToCopy = std::min(SrcCompCount, DstCompCount);
     for (size_t row = 0; row < size_t{Height}; ++row)
     {
         for (size_t col = 0; col < size_t{Width}; ++col)
         {
-            for (int c = 0; c < 3; ++c)
+            // clang-format off
+            auto*       pDst = reinterpret_cast<      ChannelType*>((reinterpret_cast<      Uint8*>(pDstData) + size_t{DstStride} * row)) + col * DstCompCount;
+            const auto* pSrc = reinterpret_cast<const ChannelType*>((reinterpret_cast<const Uint8*>(pSrcData) + size_t{SrcStride} * row)) + col * SrcCompCount;
+            // clang-format on
+
+            for (size_t c = 0; c < CompToCopy; ++c)
+                pDst[c] = pSrc[c];
+
+            for (size_t c = CompToCopy; c < DstCompCount; ++c)
             {
-                reinterpret_cast<ChannelType*>((reinterpret_cast<Uint8*>(pRGBAData) + size_t{RGBAStride} * row))[col * 4 + c] =
-                    reinterpret_cast<const ChannelType*>((reinterpret_cast<const Uint8*>(pRGBData) + size_t{RGBStride} * row))[col * 3 + c];
+                pDst[c] = c < 3 ?
+                    (SrcCompCount == 1 ? pSrc[0] : 0) :      // For single-channel source textures, propagate r to other channels
+                    std::numeric_limits<ChannelType>::max(); // Use 1.0 as default value for alpha
             }
-            reinterpret_cast<ChannelType*>((reinterpret_cast<Uint8*>(pRGBAData) + size_t{RGBAStride} * row))[col * 4 + 3] = std::numeric_limits<ChannelType>::max();
         }
     }
 }
@@ -153,13 +169,14 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*        pRefCounters,
 
     if (ImgFileFormat == IMAGE_FILE_FORMAT_PNG ||
         ImgFileFormat == IMAGE_FILE_FORMAT_JPEG ||
-        ImgFileFormat == IMAGE_FILE_FORMAT_TIFF)
+        ImgFileFormat == IMAGE_FILE_FORMAT_TIFF ||
+        ImgFileFormat == IMAGE_FILE_FORMAT_SGI)
     {
         ImageLoadInfo ImgLoadInfo;
         ImgLoadInfo.Format = ImgFileFormat;
         if (!m_pDataBlob)
         {
-            m_pDataBlob = MakeNewRCObj<DataBlobImpl>()(DataSize, pData);
+            m_pDataBlob = DataBlobImpl::Create(DataSize, pData);
         }
         Image::CreateFromDataBlob(m_pDataBlob, ImgLoadInfo, &m_pImage);
         LoadFromImage(TexLoadInfo);
@@ -216,9 +233,10 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
     if (TexLoadInfo.MipLevels > 0)
         m_TexDesc.MipLevels = std::min(m_TexDesc.MipLevels, TexLoadInfo.MipLevels);
 
-    Uint32 NumComponents = ImgDesc.NumComponents == 3 ? 4 : ImgDesc.NumComponents;
+    Uint32 NumComponents = 0;
     if (m_TexDesc.Format == TEX_FORMAT_UNKNOWN)
     {
+        NumComponents = ImgDesc.NumComponents == 3 ? 4 : ImgDesc.NumComponents;
         if (ChannelDepth == 8)
         {
             switch (NumComponents)
@@ -245,34 +263,33 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
     else
     {
         const auto& TexFmtDesc = GetTextureFormatAttribs(m_TexDesc.Format);
-        if (TexFmtDesc.NumComponents != NumComponents)
-            LOG_ERROR_AND_THROW("Incorrect number of components ", ImgDesc.NumComponents, ") for texture format ", TexFmtDesc.Name);
+
+        NumComponents = TexFmtDesc.NumComponents;
         if (TexFmtDesc.ComponentSize != ChannelDepth / 8)
-            LOG_ERROR_AND_THROW("Incorrect channel size ", ChannelDepth, ") for texture format ", TexFmtDesc.Name);
+            LOG_ERROR_AND_THROW("Image channel size ", ChannelDepth, " is not compatible with texture format ", TexFmtDesc.Name);
     }
 
     m_SubResources.resize(m_TexDesc.MipLevels);
     m_Mips.resize(m_TexDesc.MipLevels);
 
-    if (ImgDesc.NumComponents == 3)
+    if (ImgDesc.NumComponents != NumComponents)
     {
-        VERIFY_EXPR(NumComponents == 4);
-        auto RGBAStride = ImgDesc.Width * NumComponents * ChannelDepth / 8;
-        RGBAStride      = (RGBAStride + 3) & (-4);
-        m_Mips[0].resize(size_t{RGBAStride} * size_t{ImgDesc.Height});
+        auto DstStride = ImgDesc.Width * NumComponents * ChannelDepth / 8;
+        DstStride      = AlignUp(DstStride, Uint32{4});
+        m_Mips[0].resize(size_t{DstStride} * size_t{ImgDesc.Height});
         m_SubResources[0].pData  = m_Mips[0].data();
-        m_SubResources[0].Stride = RGBAStride;
+        m_SubResources[0].Stride = DstStride;
         if (ChannelDepth == 8)
         {
-            RGBToRGBA<Uint8>(m_pImage->GetData()->GetDataPtr(), ImgDesc.RowStride,
-                             m_Mips[0].data(), RGBAStride,
-                             ImgDesc.Width, ImgDesc.Height);
+            ModifyComponentCount<Uint8>(m_pImage->GetData()->GetDataPtr(), ImgDesc.RowStride, ImgDesc.NumComponents,
+                                        m_Mips[0].data(), DstStride,
+                                        ImgDesc.Width, ImgDesc.Height, NumComponents);
         }
         else if (ChannelDepth == 16)
         {
-            RGBToRGBA<Uint16>(m_pImage->GetData()->GetDataPtr(), ImgDesc.RowStride,
-                              m_Mips[0].data(), RGBAStride,
-                              ImgDesc.Width, ImgDesc.Height);
+            ModifyComponentCount<Uint16>(m_pImage->GetData()->GetDataPtr(), ImgDesc.RowStride, ImgDesc.NumComponents,
+                                         m_Mips[0].data(), DstStride,
+                                         ImgDesc.Width, ImgDesc.Height, NumComponents);
         }
     }
     else
@@ -293,9 +310,20 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
             auto FinerMipProps = GetMipLevelProperties(m_TexDesc, m - 1);
             if (TexLoadInfo.GenerateMips)
             {
-                ComputeMipLevel(FinerMipProps.LogicalWidth, FinerMipProps.LogicalHeight, m_TexDesc.Format,
-                                m_SubResources[m - 1].pData, m_SubResources[m - 1].Stride,
-                                m_Mips[m].data(), m_SubResources[m].Stride);
+                ComputeMipLevelAttribs Attribs;
+                Attribs.Format          = m_TexDesc.Format;
+                Attribs.FineMipWidth    = FinerMipProps.LogicalWidth;
+                Attribs.FineMipHeight   = FinerMipProps.LogicalHeight;
+                Attribs.pFineMipData    = m_SubResources[m - 1].pData;
+                Attribs.FineMipStride   = StaticCast<size_t>(m_SubResources[m - 1].Stride);
+                Attribs.pCoarseMipData  = m_Mips[m].data();
+                Attribs.CoarseMipStride = StaticCast<size_t>(m_SubResources[m].Stride);
+                Attribs.AlphaCutoff     = TexLoadInfo.AlphaCutoff;
+                static_assert(MIP_FILTER_TYPE_DEFAULT == static_cast<MIP_FILTER_TYPE>(TEXTURE_LOAD_MIP_FILTER_DEFAULT), "Inconsistent enum values");
+                static_assert(MIP_FILTER_TYPE_BOX_AVERAGE == static_cast<MIP_FILTER_TYPE>(TEXTURE_LOAD_MIP_FILTER_BOX_AVERAGE), "Inconsistent enum values");
+                static_assert(MIP_FILTER_TYPE_MOST_FREQUENT == static_cast<MIP_FILTER_TYPE>(TEXTURE_LOAD_MIP_FILTER_MOST_FREQUENT), "Inconsistent enum values");
+                Attribs.FilterType = static_cast<MIP_FILTER_TYPE>(TexLoadInfo.MipFilter);
+                ComputeMipLevel(Attribs);
             }
         }
     }
@@ -313,7 +341,7 @@ void CreateTextureLoaderFromFile(const char*            FilePath,
         if (!File)
             LOG_ERROR_AND_THROW("Failed to open file '", FilePath, "'.");
 
-        RefCntAutoPtr<IDataBlob> pFileData{MakeNewRCObj<DataBlobImpl>()(0)};
+        auto pFileData = DataBlobImpl::Create();
         File->Read(pFileData);
 
         RefCntAutoPtr<ITextureLoader> pTexLoader{
@@ -341,7 +369,7 @@ void CreateTextureLoaderFromMemory(const void*            pData,
         RefCntAutoPtr<IDataBlob> pDataCopy;
         if (MakeDataCopy)
         {
-            pDataCopy = MakeNewRCObj<DataBlobImpl>()(Size, pData);
+            pDataCopy = DataBlobImpl::Create(Size, pData);
             pData     = pDataCopy->GetConstDataPtr();
         }
         RefCntAutoPtr<ITextureLoader> pTexLoader{MakeNewRCObj<TextureLoaderImpl>()(TexLoadInfo, reinterpret_cast<const Uint8*>(pData), Size, std::move(pDataCopy))};

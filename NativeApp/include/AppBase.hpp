@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,6 +57,19 @@ public:
         CompareUpdate
     };
 
+    /// Command line processing result
+    enum class CommandLineStatus
+    {
+        /// Command line has been processed successfully.
+        OK,
+
+        /// Command line help has been requested.
+        Help,
+
+        /// Command line was processed with error.
+        Error
+    };
+
     virtual ~AppBase() {}
 
 
@@ -64,8 +77,11 @@ public:
 
     /// The method is called by the framework to let the application process
     /// the command line arguments. This method is called before any other method is called.
-    /// \param [in] CmdLine - The command line string.
-    virtual void ProcessCommandLine(const char* CmdLine) = 0;
+    /// \param [in] argc - The number of arguments in argv array.
+    /// \param [in] argv - An array of arguments.
+    ///
+    /// \return     Command line processing status, see CommandLineStatus.
+    virtual CommandLineStatus ProcessCommandLine(int argc, const char* const* argv) = 0;
 
 
     /// Returns the application tile.

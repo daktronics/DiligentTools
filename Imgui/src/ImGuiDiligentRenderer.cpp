@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -321,15 +321,13 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     InvalidateDeviceObjects();
 
     ShaderCreateInfo ShaderCI;
-    ShaderCI.UseCombinedTextureSamplers = true;
-    ShaderCI.SourceLanguage             = SHADER_SOURCE_LANGUAGE_DEFAULT;
+    ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_DEFAULT;
 
     const auto DeviceType = m_pDevice->GetDeviceInfo().Type;
 
     RefCntAutoPtr<IShader> pVS;
     {
-        ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
-        ShaderCI.Desc.Name       = "Imgui VS";
+        ShaderCI.Desc = {"Imgui VS", SHADER_TYPE_VERTEX, true};
         switch (DeviceType)
         {
             case RENDER_DEVICE_TYPE_VULKAN:
@@ -360,8 +358,7 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
 
     RefCntAutoPtr<IShader> pPS;
     {
-        ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
-        ShaderCI.Desc.Name       = "Imgui PS";
+        ShaderCI.Desc = {"Imgui PS", SHADER_TYPE_PIXEL, true};
         switch (DeviceType)
         {
             case RENDER_DEVICE_TYPE_VULKAN:
@@ -478,7 +475,7 @@ void ImGuiDiligentRenderer::CreateFontsTexture()
     FontTexDesc.BindFlags = BIND_SHADER_RESOURCE;
     FontTexDesc.Usage     = USAGE_IMMUTABLE;
 
-    TextureSubResData Mip0Data[] = {{pData, 4 * FontTexDesc.Width}};
+    TextureSubResData Mip0Data[] = {{pData, 4 * Uint64{FontTexDesc.Width}}};
     TextureData       InitData(Mip0Data, _countof(Mip0Data));
 
     RefCntAutoPtr<ITexture> pFontTex;
@@ -812,7 +809,7 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
                 else
                 {
                     IBuffer* pVBs[]       = {m_pVB};
-                    Uint64   VtxOffsets[] = {sizeof(ImDrawVert) * (pCmd->VtxOffset + GlobalVtxOffset)};
+                    Uint64   VtxOffsets[] = {sizeof(ImDrawVert) * (size_t{pCmd->VtxOffset} + size_t{GlobalVtxOffset})};
                     pCtx->SetVertexBuffers(0, 1, pVBs, VtxOffsets, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_NONE);
                 }
                 pCtx->DrawIndexed(DrawAttrs);

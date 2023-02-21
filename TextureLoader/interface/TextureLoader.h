@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,6 +37,24 @@ DILIGENT_BEGIN_NAMESPACE(Diligent)
 struct Image;
 
 // clang-format off
+
+/// Coarse mip filter type
+DILIGENT_TYPED_ENUM(TEXTURE_LOAD_MIP_FILTER, Uint8)
+{
+    /// Default filter type: BOX_AVERAGE for UNORM/SNORM and FP formats, and
+    /// MOST_FREQUENT for UINT/SINT formats.
+    TEXTURE_LOAD_MIP_FILTER_DEFAULT = 0,
+
+    /// 2x2 box average.
+    TEXTURE_LOAD_MIP_FILTER_BOX_AVERAGE,
+
+    /// Use the most frequent element from the 2x2 box.
+    /// This filter does not introduce new values and should be used
+    /// for integer textures that contain non-filterable data (e.g. indices).
+    TEXTURE_LOAD_MIP_FILTER_MOST_FREQUENT
+};
+
+
 /// Texture loading information
 struct TextureLoadInfo
 {
@@ -64,6 +82,17 @@ struct TextureLoadInfo
     /// Texture format
     TEXTURE_FORMAT Format               DEFAULT_VALUE(TEX_FORMAT_UNKNOWN);
 
+    /// Alpha cut-off value used to remap alpha channel when generating mip
+    /// levels as follows:
+    ///
+    ///     A_new = max(A_old; 1/3 * A_old + 2/3 * CutoffThreshold)
+    ///
+    /// \note This value must be in 0 to 1 range and is only
+    ///       allowed for 4-channel 8-bit textures.
+    float          AlphaCutoff          DEFAULT_VALUE(0);
+
+    /// Coarse mip filter type, see Diligent::TEXTURE_LOAD_MIP_FILTER.
+    TEXTURE_LOAD_MIP_FILTER MipFilter   DEFAULT_VALUE(TEXTURE_LOAD_MIP_FILTER_DEFAULT);
 
 #if DILIGENT_CPP_INTERFACE
     explicit TextureLoadInfo(const Char*         _Name,
@@ -176,6 +205,17 @@ void DILIGENT_GLOBAL_FUNCTION(CreateTextureLoaderFromMemory)(const void*        
                                                              bool                      MakeCopy,
                                                              const TextureLoadInfo REF TexLoadInfo,
                                                              ITextureLoader**          ppLoader);
+
+
+/// Writes texture data as DDS file.
+
+/// \param [in]  FilePath - DDS file path.
+/// \param [in]  Desc     - Texture description.
+/// \param [in]  TexData  - Texture subresource data.
+/// \return     true if the file has been written successfully, and false otherwise.
+bool DILIGENT_GLOBAL_FUNCTION(SaveTextureAsDDS)(const char*           FilePath,
+                                                const TextureDesc REF Desc,
+                                                const TextureData REF TexData);
 
 #include "../../../DiligentCore/Primitives/interface/UndefGlobalFuncHelperMacros.h"
 

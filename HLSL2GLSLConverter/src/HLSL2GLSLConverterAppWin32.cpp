@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -74,12 +74,6 @@ int main(int argc, char** argv)
 #endif
 
     HLSL2GLSLConverterApp Converter;
-
-    if (argc == 1)
-    {
-        Converter.PrintHelp();
-        return 0;
-    }
 
     {
         auto ret = Converter.ParseCmdLine(argc, argv);

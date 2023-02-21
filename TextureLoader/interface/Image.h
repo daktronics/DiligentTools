@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,7 +58,11 @@ DILIGENT_TYPED_ENUM(IMAGE_FILE_FORMAT, Uint8){
     IMAGE_FILE_FORMAT_DDS,
 
     /// KTX file
-    IMAGE_FILE_FORMAT_KTX};
+    IMAGE_FILE_FORMAT_KTX,
+
+    /// Silicon Graphics Image aka RGB file
+    /// https://en.wikipedia.org/wiki/Silicon_Graphics_Image
+    IMAGE_FILE_FORMAT_SGI};
 
 /// Image loading information
 struct ImageLoadInfo
@@ -107,6 +111,11 @@ struct Image : public ObjectBase<IObject>
                                    const ImageLoadInfo& LoadInfo,
                                    Image**              ppImage);
 
+    /// Creates a new image from memory
+    static void CreateFromMemory(const ImageDesc& Desc,
+                                 IDataBlob*       pPixels,
+                                 Image**          ppImage);
+
     struct EncodeInfo
     {
         Uint32            Width       = 0;
@@ -145,6 +154,10 @@ private:
     Image(IReferenceCounters*  pRefCounters,
           IDataBlob*           pFileData,
           const ImageLoadInfo& LoadInfo);
+
+    Image(IReferenceCounters* pRefCounters,
+          const ImageDesc&    Desc,
+          IDataBlob*          pPixels);
 
     void LoadTiffFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo);
 

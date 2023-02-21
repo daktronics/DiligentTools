@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,9 +41,8 @@ class HLSL2GLSLConverterApp
 public:
     HLSL2GLSLConverterApp();
 
-    void PrintHelp();
-    int  ParseCmdLine(int argc, char** argv);
-    int  Convert(IRenderDevice* pDevice);
+    int ParseCmdLine(int argc, char** argv);
+    int Convert(IRenderDevice* pDevice);
 
     bool NeedsCompileShader() const
     {
@@ -65,6 +64,7 @@ private:
     bool m_CompileShader         = false;
     bool m_IncludeGLSLDefintions = true;
     bool m_UseInOutLocations     = true;
+    bool m_PrintConvertedSource  = false;
 
     IEngineFactoryOpenGL* m_pFactoryGL = nullptr;
 };

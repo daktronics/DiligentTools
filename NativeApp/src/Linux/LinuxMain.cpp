@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,12 +25,14 @@
 
 #include <memory>
 #include <iomanip>
+#include <string>
 
 #include "PlatformDefinitions.h"
 #include "NativeAppBase.hpp"
 #include "StringTools.hpp"
 #include "Timer.hpp"
 #include "Errors.hpp"
+#include "CommandLineParser.hpp"
 
 
 #ifndef GLX_CONTEXT_MAJOR_VERSION_ARB
@@ -51,10 +53,10 @@
 
 typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, int, const int*);
 
-static constexpr uint16_t WindowWidth     = 1024;
-static constexpr uint16_t WindowHeight    = 768;
-static constexpr uint16_t MinWindowWidth  = 320;
-static constexpr uint16_t MinWindowHeight = 240;
+static constexpr uint16_t DefaultWindowWidth  = 1024;
+static constexpr uint16_t DefaultWindowHeight = 768;
+static constexpr uint16_t MinWindowWidth      = 320;
+static constexpr uint16_t MinWindowHeight     = 240;
 
 using namespace Diligent;
 
@@ -128,7 +130,7 @@ struct XCBInfo
     xcb_intern_atom_reply_t* atom_wm_delete_window = nullptr;
 };
 
-XCBInfo InitXCBConnectionAndWindow(const std::string& Title)
+XCBInfo InitXCBConnectionAndWindow(const std::string& Title, int WindowWidth, int WindowHeight)
 {
     XCBInfo info;
 
@@ -212,16 +214,46 @@ void DestroyXCBConnectionAndWindow(XCBInfo& info)
     xcb_disconnect(info.connection);
 }
 
-int xcb_main()
+int xcb_main(int argc, const char* const* argv)
 {
-    std::unique_ptr<NativeAppBase> TheApp(CreateApplication());
+    std::unique_ptr<NativeAppBase> TheApp{CreateApplication()};
+    if (argc > 0 && argv != nullptr)
+    {
+        auto CmdLineStatus = TheApp->ProcessCommandLine(argc, argv);
+        if (CmdLineStatus == AppBase::CommandLineStatus::Help)
+            return 0;
+        else if (CmdLineStatus == AppBase::CommandLineStatus::Error)
+            return 1;
+    }
+
+    int DesiredWidth  = 0;
+    int DesiredHeight = 0;
+    TheApp->GetDesiredInitialWindowSize(DesiredWidth, DesiredHeight);
+    int WindowWidth  = DesiredWidth > 0 ? DesiredWidth : DefaultWindowWidth;
+    int WindowHeight = DesiredHeight > 0 ? DesiredHeight : DefaultWindowHeight;
 
     std::string Title   = TheApp->GetAppTitle();
-    auto        xcbInfo = InitXCBConnectionAndWindow(Title);
+    auto        xcbInfo = InitXCBConnectionAndWindow(Title, WindowWidth, WindowHeight);
     if (!TheApp->InitVulkan(xcbInfo.connection, xcbInfo.window))
-        return -1;
+        return 1;
 
     xcb_flush(xcbInfo.connection);
+
+    if (TheApp->GetGoldenImageMode() != NativeAppBase::GoldenImageMode::None)
+    {
+        TheApp->Update(0, 0);
+        TheApp->Render();
+        xcb_flush(xcbInfo.connection);
+
+        // Dear imgui windows that don't have initial size are not rendered in the first frame,
+        // see https://github.com/ocornut/imgui/issues/2949
+        TheApp->Update(0, 0);
+        TheApp->Render();
+        TheApp->Present();
+        xcb_flush(xcbInfo.connection);
+
+        return TheApp->GetExitCode();
+    }
 
     Timer timer;
     auto  PrevTime = timer.GetElapsedTime();
@@ -313,10 +345,19 @@ int xcb_main()
 #endif
 
 
-int x_main()
+int x_main(int argc, const char* const* argv)
 {
-    std::unique_ptr<NativeAppBase> TheApp(CreateApplication());
-    Display*                       display = XOpenDisplay(0);
+    std::unique_ptr<NativeAppBase> TheApp{CreateApplication()};
+    if (argc > 0 && argv != nullptr)
+    {
+        auto CmdLineStatus = TheApp->ProcessCommandLine(argc, argv);
+        if (CmdLineStatus == AppBase::CommandLineStatus::Help)
+            return 0;
+        else if (CmdLineStatus == AppBase::CommandLineStatus::Error)
+            return 1;
+    }
+
+    Display* display = XOpenDisplay(0);
 
     // clang-format off
     static int visual_attribs[] =
@@ -352,7 +393,7 @@ int x_main()
     if (!fbc)
     {
         LOG_ERROR_MESSAGE("Failed to retrieve a framebuffer config");
-        return -1;
+        return 1;
     }
 
     XVisualInfo* vi = glXGetVisualFromFBConfig(display, fbc[0]);
@@ -369,11 +410,17 @@ int x_main()
         ButtonReleaseMask |
         PointerMotionMask;
 
+    int DesiredWidth  = 0;
+    int DesiredHeight = 0;
+    TheApp->GetDesiredInitialWindowSize(DesiredWidth, DesiredHeight);
+    int WindowWidth  = DesiredWidth > 0 ? DesiredWidth : DefaultWindowWidth;
+    int WindowHeight = DesiredHeight > 0 ? DesiredHeight : DefaultWindowHeight;
+
     Window win = XCreateWindow(display, RootWindow(display, vi->screen), 0, 0, WindowWidth, WindowHeight, 0, vi->depth, InputOutput, vi->visual, CWBorderPixel | CWColormap | CWEventMask, &swa);
     if (!win)
     {
         LOG_ERROR_MESSAGE("Failed to create window.");
-        return -1;
+        return 1;
     }
 
     {
@@ -399,7 +446,7 @@ int x_main()
     if (glXCreateContextAttribsARB == nullptr)
     {
         LOG_ERROR("glXCreateContextAttribsARB entry point not found. Aborting.");
-        return -1;
+        return 1;
     }
 
     int Flags = GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
@@ -423,7 +470,7 @@ int x_main()
     if (!ctx)
     {
         LOG_ERROR("Failed to create GL context.");
-        return -1;
+        return 1;
     }
     XFree(fbc);
 
@@ -432,8 +479,21 @@ int x_main()
     if (!TheApp->OnGLContextCreated(display, win))
     {
         LOG_ERROR("Unable to initialize the application in OpenGL mode. Aborting");
-        return -1;
+        return 1;
     }
+
+    if (TheApp->GetGoldenImageMode() != NativeAppBase::GoldenImageMode::None)
+    {
+        TheApp->Update(0, 0);
+        TheApp->Render();
+        // Dear imgui windows that don't have initial size are not rendered in the first frame,
+        // see https://github.com/ocornut/imgui/issues/2949
+        TheApp->Update(0, 0);
+        TheApp->Render();
+        TheApp->Present();
+        return TheApp->GetExitCode();
+    }
+
     std::string Title = TheApp->GetAppTitle();
 
     Timer             timer;
@@ -500,47 +560,43 @@ int x_main()
 
 int main(int argc, char** argv)
 {
-    bool UseVulkan = false;
-
 #if VULKAN_SUPPORTED
-    UseVulkan = true;
-    if (argc > 1)
-    {
-        const auto* Key = "-mode ";
-        const auto* pos = strstr(argv[1], Key);
-        if (pos != nullptr)
-        {
-            pos += strlen(Key);
-            while (*pos != 0 && *pos == ' ') ++pos;
-            if (strcasecmp(pos, "GL") == 0)
-            {
-                UseVulkan = false;
-            }
-            else if (strcasecmp(pos, "VK") == 0)
-            {
-                UseVulkan = true;
-            }
-            else
-            {
-                std::cerr << "Unknown device type. Only the following types are supported: GL, VK";
-                return -1;
-            }
-        }
-    }
+    bool UseVulkan = true;
+#else
+    bool UseVulkan = false;
+#endif
+
+
+    CommandLineParser ArgParser{argc, argv};
+    ArgParser.Parse("mode", 'm',
+                    [&UseVulkan](const char* mode) {
+                        if (strncasecmp(mode, "gl", 2) == 0)
+                        {
+                            UseVulkan = false;
+                            return true;
+                        }
+                        else if (strncasecmp(mode, "vk", 2) == 0 || strncasecmp(mode, "vk_sw", 2) == 0)
+                        {
+                            UseVulkan = true;
+                            return true;
+                        }
+                        else
+                        {
+                            LOG_WARNING_MESSAGE(mode, " is not a valid device type. Only the following types are supported: GL, VK");
+                            return false;
+                        }
+                    });
 
     if (UseVulkan)
     {
-        auto ret = xcb_main();
-        if (ret >= 0)
-        {
-            return ret;
-        }
-        else
-        {
-            LOG_ERROR_MESSAGE("Failed to initialize the engine in Vulkan mode. Attempting to use OpenGL");
-        }
-    }
+#if VULKAN_SUPPORTED
+        return xcb_main(argc, argv);
+#else
+        LOG_WARNING_MESSAGE("Vulkan backend was not built. Please select another mode.");
+        return 1;
 #endif
+    }
 
-    return x_main();
+    // NB: do not remove --mode from the command line.
+    return x_main(argc, argv);
 }

@@ -77,6 +77,7 @@ set(INCLUDE
 )
 
 add_library(LibTiff STATIC ${SOURCE} ${INCLUDE})
+add_library(TIFF::TIFF ALIAS LibTiff)
 set_common_target_properties(LibTiff)
 
 if(MSVC)
@@ -90,28 +91,22 @@ if(MSVC)
     endif()
 endif(MSVC)
 
+# Use interface libarary to add -Wno-error at the end of the command line.
+# Using target_compile_options() adds it before options of the linked libraries.
+target_link_libraries(LibTiff PRIVATE Diligent-BuildSettings NO_WERROR)
+
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
     CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # Suppress the following warnings in tif_unix.c
     #   cast from pointer to integer of different size [-Wpointer-to-int-cast]
     # and
     #   cast to pointer from integer of different size [-Wint-to-pointer-cast]
-    set_source_files_properties(
+    set_property(SOURCE
         tif_unix.c
-        PROPERTIES 
+    APPEND_STRING PROPERTY
         COMPILE_FLAGS "-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast"
     )
-    if (PLATFORM_EMSCRIPTEN)
-        set_property(SOURCE
-            tif_unix.c
-            tif_lzw.c
-        APPEND_STRING PROPERTY 
-            COMPILE_FLAGS " -Wno-unused-but-set-variable"
-        )
-    endif()
 endif()
-
-target_link_libraries(LibTiff PRIVATE Diligent-BuildSettings)
 
 target_include_directories(LibTiff 
     PUBLIC .

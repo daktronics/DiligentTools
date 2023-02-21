@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,6 +37,7 @@
 #include "png.h"
 #include "PNGCodec.h"
 #include "JPEGCodec.h"
+#include "SGILoader.h"
 
 #include "DataBlobImpl.hpp"
 #include "DebugUtilities.hpp"
@@ -222,7 +223,7 @@ Image::Image(IReferenceCounters*  pRefCounters,
              IDataBlob*           pFileData,
              const ImageLoadInfo& LoadInfo) :
     TBase{pRefCounters},
-    m_pData{MakeNewRCObj<DataBlobImpl>()(0)}
+    m_pData{DataBlobImpl::Create()}
 {
     if (LoadInfo.Format == IMAGE_FILE_FORMAT_TIFF)
     {
@@ -239,6 +240,12 @@ Image::Image(IReferenceCounters*  pRefCounters,
         auto Res = DecodeJpeg(pFileData, m_pData.RawPtr(), &m_Desc);
         if (Res != DECODE_JPEG_RESULT_OK)
             LOG_ERROR_MESSAGE("Failed to decode jpeg image");
+    }
+    else if (LoadInfo.Format == IMAGE_FILE_FORMAT_SGI)
+    {
+        auto Res = LoadSGI(pFileData, m_pData.RawPtr(), &m_Desc);
+        if (!Res)
+            LOG_ERROR_MESSAGE("Failed to load SGI image");
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_DDS)
     {
@@ -261,6 +268,24 @@ void Image::CreateFromDataBlob(IDataBlob*           pFileData,
     *ppImage = MakeNewRCObj<Image>()(pFileData, LoadInfo);
     (*ppImage)->AddRef();
 }
+
+Image::Image(IReferenceCounters* pRefCounters,
+             const ImageDesc&    Desc,
+             IDataBlob*          pPixels) :
+    TBase{pRefCounters},
+    m_Desc{Desc},
+    m_pData{pPixels}
+{
+}
+
+void Image::CreateFromMemory(const ImageDesc& Desc,
+                             IDataBlob*       pPixels,
+                             Image**          ppImage)
+{
+    *ppImage = MakeNewRCObj<Image>()(Desc, pPixels);
+    (*ppImage)->AddRef();
+}
+
 
 
 static const std::array<Uint8, 4> GetRGBAOffsets(TEXTURE_FORMAT Format)
@@ -296,11 +321,11 @@ std::vector<Uint8> Image::ConvertImageData(Uint32         Width,
     auto SrcOffsets = GetRGBAOffsets(SrcFormat);
     auto DstOffsets = GetRGBAOffsets(DstFormat);
 
-    std::vector<Uint8> ConvertedData(DstFmtAttribs.ComponentSize * NumDstComponents * Width * Height);
+    std::vector<Uint8> ConvertedData(size_t{DstFmtAttribs.ComponentSize} * size_t{NumDstComponents} * Width * Height);
 
-    for (Uint32 j = 0; j < Height; ++j)
+    for (size_t j = 0; j < Height; ++j)
     {
-        for (Uint32 i = 0; i < Width; ++i)
+        for (size_t i = 0; i < Width; ++i)
         {
             for (Uint32 c = 0; c < NumDstComponents; ++c)
             {
@@ -316,7 +341,7 @@ std::vector<Uint8> Image::ConvertImageData(Uint32         Width,
 
 void Image::Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData)
 {
-    RefCntAutoPtr<IDataBlob> pEncodedData(MakeNewRCObj<DataBlobImpl>()(0));
+    auto pEncodedData = DataBlobImpl::Create();
     if (Info.FileFormat == IMAGE_FILE_FORMAT_JPEG)
     {
         auto RGBData = ConvertImageData(Info.Width, Info.Height, reinterpret_cast<const Uint8*>(Info.pData), Info.Stride, Info.TexFormat, TEX_FORMAT_RGBA8_UNORM, false);
@@ -376,6 +401,9 @@ IMAGE_FILE_FORMAT Image::GetFileFormat(const Uint8* pData, size_t Size, const ch
             (memcmp(pData, KTX10FileIdentifier, sizeof(KTX10FileIdentifier)) == 0 ||
              memcmp(pData, KTX20FileIdentifier, sizeof(KTX20FileIdentifier)) == 0))
             return IMAGE_FILE_FORMAT_KTX;
+
+        if (Size >= 2 && pData[0] == 0x01 && pData[1] == 0xDA)
+            return IMAGE_FILE_FORMAT_SGI;
     }
 
     if (FilePath != nullptr)
@@ -406,6 +434,8 @@ IMAGE_FILE_FORMAT Image::GetFileFormat(const Uint8* pData, size_t Size, const ch
             return IMAGE_FILE_FORMAT_DDS;
         else if (Extension == "ktx")
             return IMAGE_FILE_FORMAT_KTX;
+        else if (Extension == "sgi" || Extension == "rgb" || Extension == "rgba" || Extension == "bw" || Extension == "int" || Extension == "inta")
+            return IMAGE_FILE_FORMAT_SGI;
         else
             LOG_ERROR_MESSAGE("Unrecognized image file extension", Extension);
     }
@@ -425,7 +455,7 @@ IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
         if (!pFileStream->IsValid())
             LOG_ERROR_AND_THROW("Failed to open image file \"", FilePath, '\"');
 
-        RefCntAutoPtr<IDataBlob> pFileData{MakeNewRCObj<DataBlobImpl>()(0)};
+        auto pFileData = DataBlobImpl::Create();
         pFileStream->ReadBlob(pFileData);
 
         ImgFileFormat = Image::GetFileFormat(reinterpret_cast<Uint8*>(pFileData->GetDataPtr()), pFileData->GetSize(), FilePath);
@@ -436,7 +466,8 @@ IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
 
         if (ImgFileFormat == IMAGE_FILE_FORMAT_PNG ||
             ImgFileFormat == IMAGE_FILE_FORMAT_JPEG ||
-            ImgFileFormat == IMAGE_FILE_FORMAT_TIFF)
+            ImgFileFormat == IMAGE_FILE_FORMAT_TIFF ||
+            ImgFileFormat == IMAGE_FILE_FORMAT_SGI)
         {
             ImageLoadInfo ImgLoadInfo;
             ImgLoadInfo.Format = ImgFileFormat;

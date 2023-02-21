@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,9 +28,14 @@
 #include <memory>
 #include <iomanip>
 #include <iostream>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <cstdio>
 
 #include <Windows.h>
 #include <crtdbg.h>
+
 #include "NativeAppBase.hpp"
 #include "StringTools.hpp"
 #include "Timer.hpp"
@@ -41,7 +46,10 @@ std::unique_ptr<NativeAppBase> g_pTheApp;
 
 LRESULT CALLBACK MessageProc(HWND, UINT, WPARAM, LPARAM);
 // Main
-int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow)
+int WINAPI WinMain(_In_ HINSTANCE     hInstance,
+                   _In_opt_ HINSTANCE hPrevInstance,
+                   _In_ LPSTR         lpCmdLine,
+                   _In_ int           nShowCmd)
 {
 #if defined(_DEBUG) || defined(DEBUG)
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -49,8 +57,18 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow)
 
     g_pTheApp.reset(CreateApplication());
 
-    const auto* cmdLine = GetCommandLineA();
-    g_pTheApp->ProcessCommandLine(cmdLine);
+    const auto* CmdLine = GetCommandLineA();
+    const auto  Args    = SplitString(CmdLine, CmdLine + strlen(CmdLine));
+
+    std::vector<const char*> ArgsV(Args.size());
+    for (size_t i = 0; i < Args.size(); ++i)
+        ArgsV[i] = Args[i].c_str();
+
+    auto CmdLineStatus = g_pTheApp->ProcessCommandLine(static_cast<int>(ArgsV.size()), ArgsV.data());
+    if (CmdLineStatus == AppBase::CommandLineStatus::Help)
+        return 0;
+    else if (CmdLineStatus == AppBase::CommandLineStatus::Error)
+        return -1;
 
     const auto* AppTitle = g_pTheApp->GetAppTitle();
 
@@ -62,7 +80,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow)
 
     // Register our window class
     WNDCLASSEX wcex = {sizeof(WNDCLASSEX), CS_HREDRAW | CS_VREDRAW, MessageProc,
-                       0L, 0L, instance, NULL, NULL, NULL, NULL, WindowClassName, NULL};
+                       0L, 0L, hInstance, NULL, NULL, NULL, NULL, WindowClassName, NULL};
     RegisterClassEx(&wcex);
 
     int DesiredWidth  = 0;
@@ -75,14 +93,18 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow)
     AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
     HWND wnd = CreateWindowA("SampleApp", AppTitle,
                              WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
-                             rc.right - rc.left, rc.bottom - rc.top, NULL, NULL, instance, NULL);
+                             rc.right - rc.left, rc.bottom - rc.top, NULL, NULL, hInstance, NULL);
     if (!wnd)
     {
         std::cerr << "Failed to create a window";
-        return 1;
+        return -1;
     }
 
-    g_pTheApp->OnWindowCreated(wnd, WindowWidth, WindowHeight);
+    if (!g_pTheApp->OnWindowCreated(wnd, WindowWidth, WindowHeight))
+    {
+        std::cerr << "Failed to initialize application " << AppTitle;
+        return -1;
+    }
 
     auto GoldenImgMode = g_pTheApp->GetGoldenImageMode();
     if (GoldenImgMode != NativeAppBase::GoldenImageMode::None)
@@ -99,7 +121,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow)
         return ExitCode;
     }
 
-    ShowWindow(wnd, cmdShow);
+    ShowWindow(wnd, nShowCmd);
     UpdateWindow(wnd);
 
     AppTitle = g_pTheApp->GetAppTitle();

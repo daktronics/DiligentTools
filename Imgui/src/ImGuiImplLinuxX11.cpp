@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,10 +25,13 @@
  *  of the possibility of such damages.
  */
 
+#include "ImGuiImplLinuxX11.hpp"
+
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <X11/Xutil.h>
 
+// Defined by XLib
 #ifdef Bool
 #    undef Bool
 #endif
@@ -43,8 +46,6 @@
 
 
 #include "imgui.h"
-
-#include "ImGuiImplLinuxX11.hpp"
 
 #include "DebugUtilities.hpp"
 

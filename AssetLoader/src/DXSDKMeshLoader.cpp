@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2019-2022 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -51,7 +51,7 @@ bool DXSDKMesh::CreateFromFile(const char* szFileName)
         return false;
     }
 
-    RefCntAutoPtr<IDataBlob> pFileData(MakeNewRCObj<DataBlobImpl>()(0));
+    auto pFileData = DataBlobImpl::Create();
     File->Read(pFileData);
 
     File.Close();
@@ -180,8 +180,8 @@ static void LoadTexture(IRenderDevice*                    pDevice,
                         std::vector<StateTransitionDesc>& Barriers)
 {
     std::string FullPath = ResourceDirectory;
-    if (!FullPath.empty() && FullPath.back() != FileSystem::GetSlashSymbol())
-        FullPath.push_back(FileSystem::GetSlashSymbol());
+    if (!FullPath.empty() && !FileSystem::IsSlash(FullPath.back()))
+        FullPath.push_back(FileSystem::SlashSymbol);
     FullPath.append(Name);
     if (FileSystem::FileExists(FullPath.c_str()))
     {
