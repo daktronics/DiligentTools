@@ -55,9 +55,9 @@ source_group("include" FILES ${INCLUDE})
 source_group("interface" FILES ${INTERFACE})
 
 if ((${DILIGENT_USE_VCPKG}))
-    set(IMG_LIBS ${JPEG_LIBRARIES} png TIFF::TIFF ZLIB::ZLIB)
+    set(IMG_LIBS ${JPEG_LIBRARIES} PNG::PNG TIFF::TIFF ZLIB::ZLIB)
 else()
-    set(IMG_LIBS LibJpeg LibPng LibTiff ZLib)
+    set(IMG_LIBS PNG::PNG TIFF::TIFF ZLIB::ZLIB)
 endif()
 
 target_link_libraries(Diligent-TextureLoader 
