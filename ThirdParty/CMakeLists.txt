@@ -36,6 +36,10 @@ if (NOT TARGET ZLIB::ZLIB)
     endif()
 endif()
 
+if (NOT TARGET PNG::PNG AND TARGET png)
+    add_library(PNG::PNG ALIAS png)
+endif()
+
 if (NOT TARGET PNG::PNG)
     set(PNG_BUILD_ZLIB ON CACHE BOOL "Use find_package(zlib) to find ZLib location")
     set(PNG_SHARED OFF CACHE BOOL "Build shared version of libpng")
