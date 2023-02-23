@@ -61,7 +61,12 @@ install(FILES json/LICENSE.MIT DESTINATION ${LICENSE_INSTALL_PATH} RENAME json-l
 
 
 add_library(Diligent-JSON INTERFACE)
-target_include_directories(Diligent-JSON INTERFACE json)
+get_target_relative_dir(Diligent-JSON TARGET_RELATIVE_PATH)
+target_include_directories(Diligent-JSON
+INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/json>
+    $<INSTALL_INTERFACE:include/${TARGET_RELATIVE_PATH}/json>
+)
 # WARNING: JSON_DIAGNOSTICS must be consistently defined for all inclusions of json.hpp,
 #          or there will be hard-to-diagnose run-time crashes.
 #          It is required by RenderStatePackager even in release builds.
