@@ -102,4 +102,10 @@ if(DILIGENT_INSTALL_TOOLS)
         DESTINATION
             "${CMAKE_INSTALL_INCLUDEDIR}/${DILIGENT_TOOLS_DIR}/ThirdParty/imgui"
     )
+
+    install_tools_lib(Diligent-JSON)
+endif()
+
+if ((${DILIGENT_USE_VCPKG}))
+    install_tools_lib_and_export(Diligent-JSON)
 endif()
