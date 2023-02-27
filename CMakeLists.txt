@@ -72,7 +72,7 @@ function(install_tools_lib_and_export _TARGET)
 endfunction()
 
 if ((${DILIGENT_USE_VCPKG}))
-    #find_package(JPEG REQUIRED)
+    find_package(JPEG REQUIRED)
     find_package(ZLIB REQUIRED)
     find_package(PNG REQUIRED)
     find_package(TIFF REQUIRED)
