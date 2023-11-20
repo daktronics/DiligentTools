@@ -29,7 +29,6 @@ To build the module, see [build instructions](https://github.com/DiligentGraphic
 
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](License.txt)
-[![Chat on gitter](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/diligent-engine)
 [![Chat on Discord](https://img.shields.io/discord/730091778081947680?logo=discord)](https://discord.gg/t7HGBK7)
 [![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/DiligentGraphics/DiligentTools?svg=true)](https://ci.appveyor.com/project/DiligentGraphics/diligenttools)
 [![MSVC Code Analysis](https://github.com/DiligentGraphics/DiligentTools/actions/workflows/msvc_analysis.yml/badge.svg?branch=master)](https://github.com/DiligentGraphics/DiligentTools/actions/workflows/msvc_analysis.yml?query=branch%3Amaster)
@@ -47,6 +46,7 @@ This project has some third-party dependencies, each of which may have independe
 * [libpng](http://www.libpng.org/pub/png/libpng.html): Official PNG reference library ([libpng license](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/lpng-1.6.17/LICENSE)).
 * [zlib](https://zlib.net/): A compression library ([Jean-loup Gailly and Mark Adler MIT-like license](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/zlib-1.2.8/README)).
 * [tinygltf](https://github.com/syoyo/tinygltf): A header only C++11 glTF 2.0 library ([MIT License](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/tinygltf/LICENSE)).
+* [draco](https://github.com/google/draco): A library for compressing and decompressing 3D geometric meshes and point clouds. ([Apache License 2.0](https://github.com/google/draco/blob/master/LICENSE)).
 * [imgui](https://github.com/ocornut/imgui): Immediate Mode Graphical User interface for C++ with minimal dependencies ([MIT license](https://github.com/DiligentGraphics/imgui/blob/master/LICENSE.txt)).
 * [imGuIZMO.quat](https://github.com/BrutPitt/imGuIZMO.quat): ImGui GIZMO widget - 3D object manipulator / orientator ([BSD 2-Clause License](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/imGuIZMO.quat/license.txt)).
 * [stb](https://github.com/nothings/stb): stb single-file public domain libraries for C/C++ ([MIT License or Public Domain License](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/stb/LICENSE.txt)).

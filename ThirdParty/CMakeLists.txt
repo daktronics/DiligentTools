@@ -22,12 +22,18 @@ if (NOT TARGET TIFF::TIFF)
     add_subdirectory(libtiff)
     install(FILES libtiff/COPYRIGHT DESTINATION ${LICENSE_INSTALL_PATH} RENAME libtiff-copyright.txt)
     list(APPEND THIRD_PARTY_TARGETS LibTiff)
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(LibTiff PRIVATE -Wno-shorten-64-to-32)
+    endif()
 endif()
 
 if (NOT TARGET ZLIB::ZLIB)
     include(zlib.cmake)
     install(FILES zlib/README DESTINATION ${LICENSE_INSTALL_PATH} RENAME zlib-readme.txt)
     list(APPEND THIRD_PARTY_TARGETS ZLib)
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(ZLib PRIVATE -Wno-shorten-64-to-32)
+    endif()
 endif()
 
 if (NOT TARGET PNG::PNG)
@@ -36,6 +42,10 @@ if (NOT TARGET PNG::PNG)
     set(PNG_EXECUTABLES OFF CACHE BOOL "Build libpng executables")
     set(PNG_TESTS OFF CACHE BOOL "Build libpng tests")
     set(SKIP_INSTALL_ALL ON)
+    if(PLATFORM_TVOS)
+        # libpng does not support tvOS, but it does support iOS, so we can use the iOS target
+        set(IOS TRUE)
+    endif()
     add_subdirectory(libpng)
     set_target_properties(png_static PROPERTIES POSITION_INDEPENDENT_CODE ON)
     set_directory_root_folder(libpng DiligentTools/ThirdParty/png)
@@ -80,6 +90,18 @@ if (NOT EXISTS "${DILIGENT_DEAR_IMGUI_PATH}/imgui.h")
     message(FATAL_ERROR "${DILIGENT_DEAR_IMGUI_PATH}/imgui.h does not exist. This inidcates that imgui submodule is not checked out or DILIGENT_DEAR_IMGUI_PATH variable contains invalid path.")
 endif()
 install(FILES "${DILIGENT_DEAR_IMGUI_PATH}/LICENSE.txt" DESTINATION ${LICENSE_INSTALL_PATH} RENAME imgui-license.txt)
+
+if (DILIGENT_ENABLE_DRACO AND (NOT TARGET draco) AND (NOT TARGET draco_static))
+    message("Fetching Draco repository - this may take a few moments...")
+    include(FetchContent)
+    FetchContent_Declare(
+        draco
+        GIT_REPOSITORY https://github.com/google/draco
+        GIT_TAG        1.5.6
+    )
+    FetchContent_MakeAvailable(draco)
+    set_directory_root_folder(${draco_SOURCE_DIR} DiligentTools/ThirdParty/draco)
+endif()
 
 if(DILIGENT_INSTALL_TOOLS)
     install(TARGETS ${THIRD_PARTY_TARGETS}
