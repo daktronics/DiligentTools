@@ -169,6 +169,10 @@ if(PLATFORM_WIN32 AND MINGW_BUILD)
     target_link_libraries(Diligent-Imgui PRIVATE dwmapi.lib)
 endif()
 
+target_compile_definitions(Diligent-Imgui PRIVATE
+  IMGUI_USER_CONFIG="${CMAKE_CURRENT_SOURCE_DIR}/VTXImguiConfig.hpp"
+)
+
 source_group("src" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 source_group("interface" FILES ${INTERFACE})
