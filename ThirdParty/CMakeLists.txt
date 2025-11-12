@@ -79,7 +79,11 @@ install(FILES json/LICENSE.MIT DESTINATION ${LICENSE_INSTALL_PATH} RENAME json-l
 
 
 add_library(Diligent-JSON INTERFACE)
-target_include_directories(Diligent-JSON INTERFACE json/single_include/nlohmann)
+target_include_directories(Diligent-JSON 
+    INTERFACE 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/json/single_include/nlohmann>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/DiligentTools/ThirdParty/json/single_include/nlohmann>
+)
 # WARNING: JSON_DIAGNOSTICS must be consistently defined for all inclusions of json.hpp,
 #          or there will be hard-to-diagnose run-time crashes.
 #          It is required by RenderStatePackager even in release builds.
