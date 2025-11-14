@@ -201,7 +201,8 @@ if(DILIGENT_INSTALL_TOOLS)
 endif()
 
 if ((${DILIGENT_USE_VCPKG}))
-    install_tools_lib_and_export(Diligent-Imgui)
+    # Don't export - depends on Diligent-GraphicsTools which isn't exported
+    #    install_tools_lib_and_export(Diligent-Imgui)
     
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/imgui")
         install(DIRECTORY    ../ThirdParty/imgui

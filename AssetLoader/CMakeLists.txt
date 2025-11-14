@@ -93,5 +93,6 @@ if(DILIGENT_INSTALL_TOOLS)
 endif()
 
 if ((${DILIGENT_USE_VCPKG}))
-    install_tools_lib_and_export(Diligent-AssetLoader)
+    # Don't export - depends on Diligent-GraphicsTools which isn't exported
+    #    install_tools_lib_and_export(Diligent-AssetLoader)
 endif()
